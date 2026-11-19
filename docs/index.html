@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en" data-style="editorial">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Docs: Return Of</title>
+  <meta name="description" content="How the Return Of site is built, styled, versioned, and shipped.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/themes.css">
+  <link rel="stylesheet" href="../css/site.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="masthead label">
+      <a href="../">Return Of</a>
+      <span>Docs <span class="badge" data-version></span></span>
+    </header>
+
+    <main class="prose">
+      <h1>Docs</h1>
+      <p>Return Of is a personal study book on investing and trading. This page explains how the site is put together so that adding a page, a chart, or a new style stays quick.</p>
+
+      <h2 id="layout">How the site is laid out</h2>
+      <p>Plain HTML, CSS, and a little JavaScript. There is no build step and nothing to install: open <code>index.html</code> in a browser and it works.</p>
+      <ul>
+        <li><code>index.html</code>: the welcome page.</li>
+        <li><code>docs/index.html</code>: this page.</li>
+        <li><code>css/themes.css</code>: one block of values per style.</li>
+        <li><code>css/site.css</code>: layout and components. It reads theme values and never hard-codes a color or font.</li>
+        <li><code>js/version.js</code>: the version number, in one place.</li>
+        <li><code>js/chart.js</code>: the compound growth chart.</li>
+        <li><code>tools/check.js</code>: the checks that gate every deploy.</li>
+      </ul>
+
+      <h2 id="styles">How styles work</h2>
+      <p>Styles are tools for a job, not one skin for the whole site. Contemporary Editorial is the voice of the book. Swiss Modernism is the voice of tables, charts, and numbers. Others can join when a new kind of content calls for one.</p>
+      <p>A style applies to whatever element carries a <code>data-style</code> attribute, and styles nest. The page is Editorial; a figure inside it can be Swiss:</p>
+<pre><code>&lt;html data-style="editorial"&gt;
+  ...
+  &lt;figure class="figure" data-style="swiss"&gt;
+    ...
+  &lt;/figure&gt;</code></pre>
+      <p>To add a style, copy a block in <code>css/themes.css</code>, rename it, and change the values. To restyle a page or a block, change one word. The values come from the style profiles in the <a href="https://polarispixels.com/laboratory">Visual Design Laboratory</a>.</p>
+      <p>Here is a Swiss table sitting inside this Editorial page:</p>
+
+      <figure class="figure" data-style="swiss">
+        <div class="figure-head">
+          <span class="figure-number">Table 1</span>
+          <h3 class="figure-title">One dollar, compounded yearly</h3>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Rate</th><th>Year 10</th><th>Year 20</th><th>Year 30</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>4%</td><td>$1.48</td><td>$2.19</td><td>$3.24</td></tr>
+              <tr><td>7%</td><td>$1.97</td><td>$3.87</td><td>$7.61</td></tr>
+              <tr><td>10%</td><td>$2.59</td><td>$6.73</td><td>$17.45</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="figure-note">Arithmetic only: not a forecast and not market data.</p>
+      </figure>
+
+      <h2 id="versioning">Versioning and releases</h2>
+      <p>The site follows <a href="https://semver.org/">SemVer</a> and keeps a <a href="https://github.com/polarispixels/return-of/blob/main/CHANGELOG.md">changelog</a>. The version shows in the footer of the welcome page and at the top of this one, so a deploy can be checked by eye.</p>
+      <ol>
+        <li>Bump <code>RETURN_OF_VERSION</code> in <code>js/version.js</code>.</li>
+        <li>Add a <code>## [x.y.z]</code> entry to <code>CHANGELOG.md</code>.</li>
+        <li>Run <code>node tools/check.js</code>.</li>
+        <li>Commit, push to <code>main</code>, then tag: <code>git tag vX.Y.Z &amp;&amp; git push --tags</code>.</li>
+      </ol>
+
+      <h2 id="deploy">How it ships</h2>
+      <p>Every push to <code>main</code> runs the checks in GitHub Actions. If they pass, the same workflow publishes the site to GitHub Pages. A failing check never reaches the live site. A deploy is done when the live page shows the new version.</p>
+
+      <h2 id="backlog">Backlog and issues</h2>
+      <p>Work is tracked in <a href="https://github.com/polarispixels/return-of/issues">GitHub Issues</a>. Each issue carries one MoSCoW label, one effort label, and one type label. Loose ideas that are not yet issues live in <code>BACKLOG.md</code>.</p>
+
+      <h2 id="decisions">Decisions</h2>
+      <ul>
+        <li><strong>November 19, 2026: plain static files, no build step.</strong> Fastest way to start, and easy to outgrow. The tradeoff: shared pieces like the header are copied between pages until a generator is worth adding.</li>
+        <li><strong>November 19, 2026: styles are scoped by <code>data-style</code>, not chosen once per site.</strong> Lets a Swiss chart sit in an Editorial page. The tradeoff: components may only use theme values, never their own colors or fonts.</li>
+        <li><strong>November 19, 2026: hosted on GitHub Pages, deployed by GitHub Actions.</strong> Free, public, and gated by the checks. A polarispixels.com subdomain can point here later.</li>
+        <li><strong>November 19, 2026: charts are hand-drawn SVG, no chart library.</strong> One chart does not justify a dependency. Revisit when charts multiply.</li>
+      </ul>
+    </main>
+
+    <footer class="colophon label">
+      <nav>
+        <a href="../">Home</a>
+        <a href="https://github.com/polarispixels/return-of">GitHub</a>
+      </nav>
+      <span data-version></span>
+    </footer>
+  </div>
+
+  <script src="../js/version.js"></script>
+</body>
+</html>

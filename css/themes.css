@@ -1,0 +1,50 @@
+/*
+ * Themes. One block per style. A style applies to whatever element carries
+ * data-style="<name>", so styles can nest: a Swiss chart inside an Editorial page.
+ *
+ * To add a style: copy a block, rename it, change the values. Nothing else.
+ * Values come from the Visual Design Laboratory profiles (polarispixels.com/laboratory).
+ */
+
+[data-style="editorial"] {
+  --bg: #FBFAF7;
+  --fg: #1B1B1B;
+  --accent: #B3261E;
+  --muted: #5C5C5C;
+  --rule: #1B1B1B;
+  --rule-weight: 1px;
+  --radius: 0px;
+  --font-display: "Playfair Display", "Times New Roman", serif;
+  --font-body: "Source Serif 4", Georgia, serif;
+  --display-weight: 900;
+  --display-tracking: -0.03em;
+  --heading-weight: 700;
+  --label-transform: uppercase;
+  --label-tracking: 0.16em;
+  --measure: 34rem;
+}
+
+[data-style="swiss"] {
+  --bg: #FFFFFF;
+  --fg: #111111;
+  --accent: #D62828;
+  --muted: #666666;
+  --rule: #111111;
+  --rule-weight: 2px;
+  --radius: 0px;
+  --font-display: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-body: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --display-weight: 700;
+  --display-tracking: -0.02em;
+  --heading-weight: 700;
+  --label-transform: none;
+  --label-tracking: 0;
+  --measure: 40rem;
+}
+
+/* Any styled element paints itself from its own tokens. */
+[data-style] {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+}

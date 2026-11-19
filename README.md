@@ -15,9 +15,12 @@ There is nothing to install. Open `index.html` in a browser, or serve the folder
 python3 -m http.server 8000
 ```
 
-## Check it
+## Build and check it
+
+Chapters are written in `content/chapters/` and built into `chapters/`:
 
 ```bash
+node tools/build.js
 node tools/check.js
 ```
 

@@ -4,6 +4,23 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-19
+
+The book takes shape: a table of contents and a first draft of every chapter.
+
+### Added
+
+- Contents on the welcome page: five parts and sixteen chapters, each linking to its own page.
+- A page for every chapter, marked "Preliminary draft", with previous and next links. Each chapter ends with open questions still to answer.
+- `tools/build.js`, which wraps chapter content files in the shared page and rebuilds the contents list. No dependencies.
+- Deploy checks for missing chapters, stale built pages, and content files that break the fragment rules.
+- Docs: a "How chapters work" section and three decisions.
+
+### Changed
+
+- The two thesis figures now sit below the contents on the welcome page.
+- "No build step" is now "no dependencies": chapter pages are built by a script and the output is committed.
+
 ## [0.2.0] - 2026-11-19
 
 The thesis on the page: return on capital and return of capital, side by side.
@@ -31,6 +48,7 @@ The thesis on the page: return on capital and return of capital, side by side.
 - Docs page at `/docs/` covering layout, styles, versioning, deployment, and decisions.
 - `tools/check.js`, the deploy gate, and a GitHub Actions workflow that publishes to GitHub Pages only when it passes.
 
-[Unreleased]: https://github.com/polarispixels/return-of/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/polarispixels/return-of/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/polarispixels/return-of/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/polarispixels/return-of/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/polarispixels/return-of/releases/tag/v0.1.0

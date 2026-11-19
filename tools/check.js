@@ -19,7 +19,8 @@ function walk(dir, out = []) {
   return out;
 }
 const files = walk('.');
-const htmlFiles = files.filter((f) => f.endsWith('.html'));
+// Pages are full HTML documents. Files under content/ are fragments, checked separately.
+const htmlFiles = files.filter((f) => f.endsWith('.html') && !f.startsWith('content' + path.sep));
 
 // 1. The version in js/version.js has a changelog entry.
 const versionMatch = read('js/version.js').match(/RETURN_OF_VERSION\s*=\s*'(\d+\.\d+\.\d+)'/);
@@ -86,6 +87,29 @@ if (typeof chart.grow !== 'function' || typeof chart.breakeven !== 'function' ||
     }
   }
 }
+
+// 8. Chapters: every chapter in the manifest has content, the content follows
+//    the fragment rules, and the generated pages are fresh.
+const { build } = require('./build.js');
+const { out, list } = build();
+for (const ch of list) {
+  const src = 'content/chapters/' + ch.file;
+  if (!fs.existsSync(path.join(root, src))) { fail(`${src}: chapter ${ch.number} has no content file`); continue; }
+  const frag = read(src);
+  if (/<(html|head|body|h1|script|style)[\s>]/i.test(frag)) fail(`${src}: fragments hold body content only (no html, head, body, h1, script, or style)`);
+  if (!frag.includes('class="lead"')) fail(`${src}: missing the opening <p class="lead">`);
+  if (/\sstyle="/.test(frag)) fail(`${src}: no inline styles; use theme tokens and classes`);
+}
+for (const [file, content] of Object.entries(out)) {
+  if (!fs.existsSync(path.join(root, file)) || read(file) !== content) fail(`${file}: stale, run "node tools/build.js"`);
+}
+for (const f of files.filter((f) => f.startsWith('chapters' + path.sep))) {
+  if (!(f in out)) fail(`${f}: not in content/chapters.json, delete it`);
+}
+for (const f of files.filter((f) => f.startsWith(path.join('content', 'chapters') + path.sep))) {
+  if (!list.some((ch) => 'content/chapters/' + ch.file === f)) fail(`${f}: not in content/chapters.json`);
+}
+if (!read('index.html').includes('id="contents"')) fail('index.html: the contents list is missing');
 
 // 7. No em dashes in anything a person reads.
 for (const file of files.filter((f) => /\.(html|md|css|js|yml)$/.test(f))) {

@@ -1,0 +1,50 @@
+{
+  "parts": [
+    {
+      "numeral": "I",
+      "title": "Principles",
+      "chapters": [
+        { "slug": "return-of-capital", "title": "Return Of Capital", "summary": "The first principle: protect the money before you try to grow it." },
+        { "slug": "every-dollar-has-a-job", "title": "Every Dollar Has a Job", "summary": "Cushion, opportunity reserve, core, satellite." },
+        { "slug": "know-your-edge", "title": "Know Your Edge", "summary": "Where you actually beat the market, and where you don't." }
+      ]
+    },
+    {
+      "numeral": "II",
+      "title": "Strategy",
+      "chapters": [
+        { "slug": "the-strategy-menu", "title": "The Strategy Menu", "summary": "Thirteen named strategies, rated by risk and effort." },
+        { "slug": "the-ladder", "title": "The Ladder", "summary": "Levels you unlock with proof, and lose by neglect." }
+      ]
+    },
+    {
+      "numeral": "III",
+      "title": "The Portfolio",
+      "chapters": [
+        { "slug": "the-core", "title": "The Core", "summary": "Index funds, pies, dividends." },
+        { "slug": "the-satellite", "title": "The Satellite", "summary": "Swing trading and growth momentum." },
+        { "slug": "options-from-the-sellers-side", "title": "Options From the Seller's Side", "summary": "Covered calls and the Wheel." },
+        { "slug": "the-casino-floor", "title": "The Casino Floor", "summary": "Long options, 0DTE and day trading, paid for with a tuition budget." }
+      ]
+    },
+    {
+      "numeral": "IV",
+      "title": "Execution",
+      "chapters": [
+        { "slug": "risk-and-sizing", "title": "Risk and Sizing", "summary": "Stops, the 1% rule and expectancy." },
+        { "slug": "disposition", "title": "Disposition", "summary": "The nerve to act and the nerve not to." },
+        { "slug": "the-morning-routine-and-the-journal", "title": "The Morning Routine and the Journal", "summary": "Active management depends on activity." },
+        { "slug": "own-the-process-rent-the-tools", "title": "Own the Process, Rent the Tools", "summary": "Choosing brokers and platforms." }
+      ]
+    },
+    {
+      "numeral": "V",
+      "title": "Rules and Systems",
+      "chapters": [
+        { "slug": "rules-of-the-road", "title": "Rules of the Road", "summary": "Taxes, wash sales, settlement and accredited status." },
+        { "slug": "systematic", "title": "Systematic", "summary": "Turning proven rules into code." },
+        { "slug": "your-investment-policy-statement", "title": "Your Investment Policy Statement", "summary": "Writing it all down as your own." }
+      ]
+    }
+  ]
+}

@@ -23,9 +23,13 @@
       <p>Return Of is a personal study book on investing and trading. This page explains how the site is put together so that adding a page, a chart, or a new style stays quick.</p>
 
       <h2 id="layout">How the site is laid out</h2>
-      <p>Plain HTML, CSS, and a little JavaScript. There is no build step and nothing to install: open <code>index.html</code> in a browser and it works.</p>
+      <p>Plain HTML, CSS, and a little JavaScript. There is nothing to install: open <code>index.html</code> in a browser and it works. One small script builds the chapter pages, and its output is saved in the repo.</p>
       <ul>
         <li><code>index.html</code>: the welcome page.</li>
+        <li><code>content/chapters.json</code>: the book's parts and chapters, in order.</li>
+        <li><code>content/chapters/</code>: one file of content per chapter. This is where the writing happens.</li>
+        <li><code>chapters/</code>: the finished chapter pages. Built by a script: do not edit them by hand.</li>
+        <li><code>tools/build.js</code>: builds the chapter pages and the contents list.</li>
         <li><code>docs/index.html</code>: this page.</li>
         <li><code>css/themes.css</code>: one block of values per style.</li>
         <li><code>css/site.css</code>: layout and components. It reads theme values and never hard-codes a color or font.</li>
@@ -65,6 +69,19 @@
         <p class="figure-note">Arithmetic only: not a forecast and not market data.</p>
       </figure>
 
+      <h2 id="chapters">How chapters work</h2>
+      <p>The book's outline lives in <code>content/chapters.json</code>: five parts, sixteen chapters, each with a title and a one-line summary. Each chapter's writing lives in its own file, such as <code>content/chapters/01-return-of-capital.html</code>. That file holds only the chapter's content: headings, paragraphs, lists, and figures.</p>
+      <p>Running <code>node tools/build.js</code> wraps each content file in the shared page (header, chapter number, title, previous and next links, footer) and writes it to <code>chapters/</code>. It also rewrites the contents list on the welcome page.</p>
+      <ul>
+        <li><strong>To edit a chapter:</strong> change its file in <code>content/chapters/</code>, then run the build.</li>
+        <li><strong>To add, rename, or reorder chapters:</strong> change <code>content/chapters.json</code>, name the content file to match (number, then the slug), then run the build.</li>
+        <li><strong>Tables:</strong> write <code>Table</code> as the figure number and the build numbers it for you (Table 4.1, Table 4.2).</li>
+        <li><strong>Charts:</strong> a chapter that asks for a chart gets the chart script added to its page.</li>
+        <li><strong>Drafts:</strong> every chapter page is marked "Preliminary draft" for now.</li>
+      </ul>
+      <p>The deploy check fails if a chapter has no content file, if a built page is out of date, or if a content file breaks the rules (for example, it carries its own styles).</p>
+      <p>Two rules for content: no invented numbers (arithmetic examples are labeled as arithmetic), and nothing personal (no balances, holdings, or past trades). The chapters are study notes, not financial advice, and every chapter page says so.</p>
+
       <h2 id="charts">How charts work</h2>
       <p>All charts live in <code>js/chart.js</code>. A page asks for one by name, and the script draws it into that element:</p>
 <pre><code>&lt;div class="chart" data-chart="breakeven"&gt;&lt;/div&gt;</code></pre>
@@ -82,7 +99,7 @@
       <ol>
         <li>Bump <code>RETURN_OF_VERSION</code> in <code>js/version.js</code>.</li>
         <li>Add a <code>## [x.y.z]</code> entry to <code>CHANGELOG.md</code>.</li>
-        <li>Run <code>node tools/check.js</code>.</li>
+        <li>Run <code>node tools/build.js</code>, then <code>node tools/check.js</code>.</li>
         <li>Commit, push to <code>main</code>, then tag: <code>git tag vX.Y.Z &amp;&amp; git push --tags</code>.</li>
       </ol>
 
@@ -101,6 +118,9 @@
         <li><strong>November 19, 2026: one chart file with a registry, and the arithmetic tested in the deploy check.</strong> Adding a chart is one function and one line. The tradeoff: every page that shows any chart loads the code for all of them, which is fine while there are few.</li>
         <li><strong>November 19, 2026: Fig. 2 is paired bars on one plain scale, for losses from 10% to 90%.</strong> Putting the loss and the gain needed on the same scale makes the point without prose: the loss bars barely move while the gain bars run away. The tradeoff: the small losses are slivers, so each row also prints its number. A log scale would show them better but would hide the very thing the figure is about.</li>
         <li><strong>November 19, 2026: the epigraph is attributed "Often attributed to Will Rogers", with its real history beside it.</strong> The note says only what the linked Quote Investigator article supports, and quotes the 1920 advertisement in its own words.</li>
+        <li><strong>November 19, 2026: a small build script for chapters, with its output saved in the repo.</strong> Sixteen pages share one header and footer, so copying by hand stopped making sense. Chapters are now plain content files and a script with no dependencies wraps them. Saving the output keeps the site openable straight from the files; the tradeoff is that the build must be run before a commit, which the deploy check enforces. This replaces the "no build step" decision above for chapter pages only.</li>
+        <li><strong>November 19, 2026: the contents list lives on the welcome page.</strong> A book opens to its title page and then its contents. The tradeoff is a longer welcome page, with the two thesis figures now below the contents.</li>
+        <li><strong>November 19, 2026: all sixteen chapters ship as preliminary drafts.</strong> They are built from the book plan plus well-established fundamentals, and each ends with open questions still to be answered. The tax and regulation notes in Chapter 14 are checked against primary sources and linked.</li>
       </ul>
     </main>
 

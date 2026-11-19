@@ -57,12 +57,37 @@ for (const file of htmlFiles) {
   if (!html.includes('data-version')) fail(`${file}: does not show the version`);
 }
 
-// 5. The welcome page says its name and has a chart.
+// 5. The welcome page says its name, carries the epigraph with an honest
+//    attribution, and shows the two thesis figures in order: return on, return of.
 const home = read('index.html');
 if (!/<h1[^>]*>.*Return.*Of.*<\/h1>/s.test(home)) fail('index.html: the "Return Of" title is missing');
-if (!home.includes('data-chart=')) fail('index.html: no chart on the welcome page');
+if (!home.includes('Often attributed to Will Rogers')) fail('index.html: epigraph must say "Often attributed to Will Rogers"');
+if (!home.includes('https://quoteinvestigator.com/2025/06/27/return-money/')) fail('index.html: epigraph note must link to its source');
+const onAt = home.indexOf('data-chart="compound"');
+const ofAt = home.indexOf('data-chart="breakeven"');
+if (onAt < 0) fail('index.html: Fig. 1 (compound) is missing');
+if (ofAt < 0) fail('index.html: Fig. 2 (breakeven) is missing');
+if (onAt >= 0 && ofAt >= 0 && onAt > ofAt) fail('index.html: Fig. 1 must come before Fig. 2');
 
-// 6. No em dashes in anything a person reads.
+// 6. Chart arithmetic is right, and every chart a page asks for exists.
+const chart = require('../js/chart.js');
+const near = (a, b) => Math.abs(a - b) < 1e-9;
+if (typeof chart.grow !== 'function' || typeof chart.breakeven !== 'function' || !Array.isArray(chart.charts)) {
+  fail('js/chart.js: must export grow, breakeven, and the list of chart names');
+} else {
+  if (!near(chart.grow(0.10, 2), 1.21)) fail('chart.grow: 10% for 2 years should be 1.21');
+  if (chart.grow(0.10, 30).toFixed(2) !== '17.45') fail('chart.grow: 10% for 30 years should be 17.45');
+  if (!near(chart.breakeven(0.5), 1)) fail('chart.breakeven: a 50% loss needs a 100% gain');
+  if (!near(chart.breakeven(0.9), 9)) fail('chart.breakeven: a 90% loss needs a 900% gain');
+  if (!near(chart.breakeven(0.1), 1 / 9)) fail('chart.breakeven: a 10% loss needs an 11.1% gain');
+  for (const file of htmlFiles) {
+    for (const m of read(file).matchAll(/<[a-z][^>]*\sdata-chart="([^"]+)"/g)) {
+      if (!chart.charts.includes(m[1])) fail(`${file}: chart "${m[1]}" is not defined in js/chart.js`);
+    }
+  }
+}
+
+// 7. No em dashes in anything a person reads.
 for (const file of files.filter((f) => /\.(html|md|css|js|yml)$/.test(f))) {
   if (read(file).includes(String.fromCharCode(8212))) fail(`${file}: contains an em dash`);
 }

@@ -30,7 +30,7 @@
         <li><code>css/themes.css</code>: one block of values per style.</li>
         <li><code>css/site.css</code>: layout and components. It reads theme values and never hard-codes a color or font.</li>
         <li><code>js/version.js</code>: the version number, in one place.</li>
-        <li><code>js/chart.js</code>: the compound growth chart.</li>
+        <li><code>js/chart.js</code>: every chart, plus the arithmetic behind them.</li>
         <li><code>tools/check.js</code>: the checks that gate every deploy.</li>
       </ul>
 
@@ -65,6 +65,18 @@
         <p class="figure-note">Arithmetic only: not a forecast and not market data.</p>
       </figure>
 
+      <h2 id="charts">How charts work</h2>
+      <p>All charts live in <code>js/chart.js</code>. A page asks for one by name, and the script draws it into that element:</p>
+<pre><code>&lt;div class="chart" data-chart="breakeven"&gt;&lt;/div&gt;</code></pre>
+      <p>There are two so far: <code>compound</code> (Fig. 1, what one dollar becomes) and <code>breakeven</code> (Fig. 2, the gain needed to recover a loss). To add one, write a draw function and add it to the <code>CHARTS</code> list at the bottom of the file.</p>
+      <ul>
+        <li>Charts are drawn at the real width of their container, not scaled, so labels stay readable on a phone. They redraw when the window changes size.</li>
+        <li>Charts take their colors and fonts from the style of the figure they sit in.</li>
+        <li>The arithmetic (<code>grow</code>, <code>breakeven</code>) is kept apart from the drawing, and <code>tools/check.js</code> tests it on every deploy. The check also fails if a page asks for a chart that does not exist.</li>
+        <li>Two figures meant to be read together go in a <code>&lt;section class="pair"&gt;</code>: side by side on a wide screen, stacked on a phone.</li>
+        <li>Every figure says where its numbers come from. Arithmetic is labeled as arithmetic.</li>
+      </ul>
+
       <h2 id="versioning">Versioning and releases</h2>
       <p>The site follows <a href="https://semver.org/">SemVer</a> and keeps a <a href="https://github.com/polarispixels/return-of/blob/main/CHANGELOG.md">changelog</a>. The version shows in the footer of the welcome page and at the top of this one, so a deploy can be checked by eye.</p>
       <ol>
@@ -86,6 +98,9 @@
         <li><strong>November 19, 2026: styles are scoped by <code>data-style</code>, not chosen once per site.</strong> Lets a Swiss chart sit in an Editorial page. The tradeoff: components may only use theme values, never their own colors or fonts.</li>
         <li><strong>November 19, 2026: hosted on GitHub Pages, deployed by GitHub Actions.</strong> Free, public, and gated by the checks. A polarispixels.com subdomain can point here later.</li>
         <li><strong>November 19, 2026: charts are hand-drawn SVG, no chart library.</strong> One chart does not justify a dependency. Revisit when charts multiply.</li>
+        <li><strong>November 19, 2026: one chart file with a registry, and the arithmetic tested in the deploy check.</strong> Adding a chart is one function and one line. The tradeoff: every page that shows any chart loads the code for all of them, which is fine while there are few.</li>
+        <li><strong>November 19, 2026: Fig. 2 is paired bars on one plain scale, for losses from 10% to 90%.</strong> Putting the loss and the gain needed on the same scale makes the point without prose: the loss bars barely move while the gain bars run away. The tradeoff: the small losses are slivers, so each row also prints its number. A log scale would show them better but would hide the very thing the figure is about.</li>
+        <li><strong>November 19, 2026: the epigraph is attributed "Often attributed to Will Rogers", with its real history beside it.</strong> The note says only what the linked Quote Investigator article supports, and quotes the 1920 advertisement in its own words.</li>
       </ul>
     </main>
 

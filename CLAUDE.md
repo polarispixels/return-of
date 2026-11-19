@@ -36,5 +36,7 @@ Bump `js/version.js`, add a `## [x.y.z]` entry to `CHANGELOG.md`, run the check,
 
 ## Known traps
 
-- The chart sizes itself to its container in real pixels (so labels stay readable on phones) and redraws on resize. Do not swap it for a scaled `viewBox`.
+- Charts size themselves to their container in real pixels (so labels stay readable on phones) and redraw on resize. Do not swap this for a scaled `viewBox`.
+- `js/chart.js` runs in the browser and is also loaded by `tools/check.js` in Node. Keep anything that touches `document` or `window` below the `typeof document` guard.
+- New chart: add a draw function to `CHARTS` in `js/chart.js`, keep its arithmetic pure, and test it in `tools/check.js`.
 - Header and footer are copied between pages. Change both.

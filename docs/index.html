@@ -47,6 +47,7 @@
     ...
   &lt;/figure&gt;</code></pre>
       <p>To add a style, copy a block in <code>css/themes.css</code>, rename it, and change the values. To restyle a page or a block, change one word. The values come from the style profiles in the <a href="https://polarispixels.com/laboratory">Visual Design Laboratory</a>.</p>
+      <p>There are three styles so far: <code>editorial</code> for the book, <code>swiss</code> for tables and charts, and <code>private</code>, a neon pink used only to mark content that is held back (see <a href="#privacy">What is public and what is private</a>).</p>
       <p>Here is a Swiss table sitting inside this Editorial page:</p>
 
       <figure class="figure" data-style="swiss">
@@ -81,6 +82,35 @@
       </ul>
       <p>The deploy check fails if a chapter has no content file, if a built page is out of date, or if a content file breaks the rules (for example, it carries its own styles).</p>
       <p>Two rules for content: no invented numbers (arithmetic examples are labeled as arithmetic), and nothing personal (no balances, holdings, or past trades). The chapters are study notes, not financial advice, and every chapter page says so.</p>
+
+      <h2 id="privacy">What is public and what is private</h2>
+      <p>This site is public, and so is its repo. Anything in it can be read by anyone, so the line is drawn before content goes in, not after.</p>
+      <div class="table-scroll">
+        <table class="wrap">
+          <thead><tr><th>Tier</th><th>What goes there</th><th>Where it lives</th></tr></thead>
+          <tbody>
+            <tr><td>Public</td><td>The method: principles, rules, arithmetic, the strategy menu, the evaluation dimensions, and judgments that describe no one's accounts</td><td>This site</td></tr>
+            <tr><td>Private</td><td>Personal choices: which platform does which job in a real portfolio, notes on fees and cash rates, policy numbers, journal results</td><td>Not on this site yet. A pink "Private" box marks the spot</td></tr>
+            <tr><td>Never</td><td>Balances, statements, holdings, account numbers</td><td>Never on any site</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>A private block is a placeholder and nothing more: the held-back content is not in the page, the repo, or any file the site serves. To add one to a chapter:</p>
+<pre><code>&lt;aside class="private" data-style="private"&gt;
+  &lt;p class="private-label"&gt;Private&lt;/p&gt;
+  &lt;p class="private-title"&gt;What is held back&lt;/p&gt;
+  &lt;p&gt;One or two sentences on what will appear here.&lt;/p&gt;
+&lt;/aside&gt;</code></pre>
+      <p>Showing private content to a logged-in reader needs a server, which this site does not have. That is a later step, recorded in the decisions below.</p>
+
+      <h2 id="matrix">The platform fit matrix</h2>
+      <p>Chapter 13 shows a table of platforms scored against strategies. Its data lives in <code>content/data/platform-fit.json</code>: the strategies with their default weights, and each platform with its scores (0 to 3) and a short role. A chapter asks for the table with the comment <code>&lt;!-- include: platform-fit --&gt;</code>, and the build draws it, sorted by weighted fit.</p>
+      <ul>
+        <li>The table is complete without JavaScript. <code>js/matrix.js</code> adds the live part: change a weight and the rows re-rank.</li>
+        <li>The data is a snapshot of a private working sheet, taken by hand. It carries only public fields, and the deploy check rejects any others.</li>
+        <li>The check also recomputes every weighted fit and compares it with the sheet, to catch copying mistakes.</li>
+        <li>To refresh it: update the JSON from the sheet, update the expected figures in <code>tools/check.js</code>, change the "as of" date, and run the build.</li>
+      </ul>
 
       <h2 id="charts">How charts work</h2>
       <p>All charts live in <code>js/chart.js</code>. A page asks for one by name, and the script draws it into that element:</p>
@@ -121,6 +151,9 @@
         <li><strong>November 19, 2026: a small build script for chapters, with its output saved in the repo.</strong> Sixteen pages share one header and footer, so copying by hand stopped making sense. Chapters are now plain content files and a script with no dependencies wraps them. Saving the output keeps the site openable straight from the files; the tradeoff is that the build must be run before a commit, which the deploy check enforces. This replaces the "no build step" decision above for chapter pages only.</li>
         <li><strong>November 19, 2026: the contents list lives on the welcome page.</strong> A book opens to its title page and then its contents. The tradeoff is a longer welcome page, with the two thesis figures now below the contents.</li>
         <li><strong>November 19, 2026: all sixteen chapters ship as preliminary drafts.</strong> They are built from the book plan plus well-established fundamentals, and each ends with open questions still to be answered. The tax and regulation notes in Chapter 14 are checked against primary sources and linked.</li>
+        <li><strong>November 19, 2026: three tiers of content, and private blocks are placeholders for now.</strong> Real privacy needs a server and a login, which means moving off GitHub Pages and running an app. That is deferred. Until then, anything personal stays out of the repo entirely and a pink "Private" box marks where it will go. The tradeoff: nothing private can be read on the site, even by its author.</li>
+        <li><strong>November 19, 2026: the platform fit matrix is public; the recommended stack is private.</strong> Scores say how well a tool suits a strategy and describe no one's accounts. The stack, and the notes on fees and cash rates behind it, describe a real portfolio and go stale quickly, so they are held back.</li>
+        <li><strong>November 19, 2026: the matrix is a dated snapshot built into the page.</strong> The working sheet is private and live; the site is static. A snapshot is simple and honest about its date. The tradeoff: it must be refreshed by hand when the sheet changes.</li>
       </ul>
     </main>
 

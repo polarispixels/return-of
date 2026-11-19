@@ -13,6 +13,7 @@ Ryan's personal study book on investing and trading: a public static site of mul
 | The version | `RETURN_OF_VERSION` in `js/version.js` |
 | The book outline (parts, chapters, order) | `content/chapters.json`, following the book plan in COMPASS (`/mnt/f/compass/08_Projects/return-of/PLAN.md`) |
 | Chapter content | `content/chapters/NN-slug.html` (fragments). `chapters/` is generated: never edit it by hand |
+| Platform fit matrix data | `content/data/platform-fit.json`, a hand-taken snapshot of Ryan's private sheet (linked from `drafts/13-platform-fit-matrix.md` in COMPASS). Public fields only |
 | Style values | `css/themes.css`, sourced from `~/code/polaris-pixels/laboratory/data/styles/` |
 
 - **Live:** https://polarispixels.github.io/return-of/ (repo `polarispixels/return-of`, GitHub Pages via Actions).
@@ -24,7 +25,7 @@ Ryan's personal study book on investing and trading: a public static site of mul
 3. **Content and what it claims belong to Ryan.** Do not invent market data, returns, or advice. Illustrations use arithmetic or cited sources, and say which. No quotes from real people. Tax and regulatory claims need a primary source link.
 4. **Verify before claiming done.** Run `node tools/check.js`. A deploy is done when the live page shows the new version.
 5. **No em dashes** in anything a person reads (the check enforces it).
-6. **The site is public; the method is not the money.** Nothing personal goes on a page: no balances, holdings, past trades, or life plans. Ask before using anything from the COMPASS `DECISIONS.md`.
+6. **The site is public; the method is not the money.** Three tiers, set by Ryan on November 19, 2026: *public* (the method, and judgments that describe no one's accounts), *private* (personal choices such as which platforms he uses, fee and rate notes, policy numbers, journal results), *never* (balances, statements, holdings, account numbers). Private content is not in this repo in any form: a pink `<aside class="private" data-style="private">` placeholder marks the spot. No client-side "login" tricks; real privacy waits for a server. Ask before using anything from the COMPASS `DECISIONS.md`.
 
 ## Commands
 

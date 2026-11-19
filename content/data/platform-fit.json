@@ -1,0 +1,34 @@
+{
+  "asOf": "November 2026",
+  "scale": "3 built for it, 2 good, 1 workable, 0 poor or not offered",
+  "strategies": [
+    { "name": "Index Core", "weight": 3 },
+    { "name": "Custom Pie", "weight": 1 },
+    { "name": "Dividend Growth", "weight": 1 },
+    { "name": "Value", "weight": 1 },
+    { "name": "Growth Momentum", "weight": 2 },
+    { "name": "Swing", "weight": 3 },
+    { "name": "Covered Calls", "weight": 1 },
+    { "name": "The Wheel", "weight": 1 },
+    { "name": "Systematic", "weight": 1 }
+  ],
+  "platforms": [
+    { "name": "Schwab (thinkorswim)", "role": "Active satellite hub: charts, scans, paper trading", "scores": [3, 1, 3, 3, 3, 3, 3, 3, 2] },
+    { "name": "Interactive Brokers", "role": "Systematic and API work once rules are proven", "scores": [2, 1, 2, 2, 2, 3, 3, 3, 3] },
+    { "name": "Fidelity", "role": "Core and cash home", "scores": [3, 3, 3, 3, 2, 2, 2, 2, 0] },
+    { "name": "E*Trade", "role": "Alternative active platform", "scores": [2, 0, 2, 2, 2, 3, 3, 3, 1] },
+    { "name": "Webull", "role": "Backup broker; options paper trading", "scores": [1, 1, 1, 1, 2, 3, 3, 3, 2] },
+    { "name": "Moomoo", "role": "Alternative charting", "scores": [1, 0, 1, 2, 2, 3, 3, 3, 2] },
+    { "name": "TradeStation", "role": "Backtesting and coded rules", "scores": [1, 0, 1, 1, 3, 3, 2, 2, 3] },
+    { "name": "Robinhood", "role": "Backup broker; simple app", "scores": [2, 1, 2, 1, 2, 2, 2, 2, 1] },
+    { "name": "Public", "role": "Level 3 options income", "scores": [2, 1, 2, 1, 1, 1, 3, 3, 2] },
+    { "name": "tastytrade", "role": "Level 3 to 4 options specialist", "scores": [1, 0, 1, 0, 1, 2, 3, 3, 3] },
+    { "name": "SoFi", "role": "Little this method needs", "scores": [2, 1, 2, 1, 1, 1, 2, 2, 0] },
+    { "name": "Merrill Edge", "role": "Makes most sense for Bank of America customers", "scores": [2, 0, 2, 2, 1, 1, 2, 1, 0] },
+    { "name": "M1", "role": "Core automation with pies", "scores": [3, 3, 3, 1, 0, 0, 0, 0, 1] },
+    { "name": "Composer", "role": "No-code systematic lab and backtests", "scores": [1, 2, 1, 0, 2, 1, 1, 0, 3] },
+    { "name": "Alpaca", "role": "Code-first broker for your own scripts", "scores": [1, 0, 1, 0, 1, 2, 1, 1, 3] },
+    { "name": "Vanguard", "role": "Index funds; not built for trading", "scores": [3, 0, 2, 1, 0, 0, 1, 0, 0] },
+    { "name": "Betterment / Wealthfront", "role": "Hands-off managed core", "scores": [3, 1, 1, 0, 0, 0, 0, 0, 0] }
+  ]
+}

@@ -42,6 +42,25 @@
   --measure: 40rem;
 }
 
+/* Private: marks content that is held back from the public site. Loud on purpose. */
+[data-style="private"] {
+  --bg: #FF2D95;
+  --fg: #111111;
+  --accent: #111111;
+  --muted: #111111;
+  --rule: #111111;
+  --rule-weight: 3px;
+  --radius: 0px;
+  --font-display: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-body: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --display-weight: 700;
+  --display-tracking: 0;
+  --heading-weight: 700;
+  --label-transform: uppercase;
+  --label-tracking: 0.14em;
+  --measure: 34rem;
+}
+
 /* Any styled element paints itself from its own tokens. */
 [data-style] {
   background: var(--bg);

@@ -4,6 +4,22 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-19
+
+The platform fit matrix, and a line between public and private.
+
+### Added
+
+- Chapter 13: the platform fit matrix. Seventeen platforms scored 0 to 3 against nine strategies, shaded as a heatmap and ranked by weighted fit. Change a weight and the table re-ranks.
+- A "private" style and placeholder block: a neon pink box that marks content held back from the public site. Chapter 13 uses it for the recommended stack.
+- `content/data/platform-fit.json`, the matrix data, and an include that lets a chapter ask the build for the table.
+- Deploy checks that the matrix data carries only public fields, that scores are valid, and that every weighted fit matches the source sheet.
+- Docs: "What is public and what is private", "The platform fit matrix", and three decisions.
+
+### Changed
+
+- Chapter 13 no longer says it makes no judgment about platforms: it now shows the scores, labeled as working judgments with a date.
+
 ## [0.3.0] - 2026-11-19
 
 The book takes shape: a table of contents and a first draft of every chapter.
@@ -48,7 +64,8 @@ The thesis on the page: return on capital and return of capital, side by side.
 - Docs page at `/docs/` covering layout, styles, versioning, deployment, and decisions.
 - `tools/check.js`, the deploy gate, and a GitHub Actions workflow that publishes to GitHub Pages only when it passes.
 
-[Unreleased]: https://github.com/polarispixels/return-of/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/polarispixels/return-of/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/polarispixels/return-of/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/polarispixels/return-of/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/polarispixels/return-of/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/polarispixels/return-of/releases/tag/v0.1.0

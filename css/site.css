@@ -155,6 +155,34 @@ table.wrap th, table.wrap td { white-space: normal; text-align: left; vertical-a
 table.wrap td:first-child, table.wrap th:first-child { min-width: 0; }
 thead th { border-bottom: var(--rule-weight) solid var(--rule); font-size: 0.8125rem; }
 
+/* Fit matrix: a heatmap table. Shade and digit both carry the score. */
+.matrix th, .matrix td { text-align: center; padding: 0.4rem 0.35rem; }
+.matrix th:first-child { text-align: left; position: sticky; left: 0; z-index: 1; background: var(--bg); padding-right: 0.75rem; font-weight: 700; }
+.matrix thead th { vertical-align: bottom; }
+.matrix-strategy { height: 9.5rem; }
+.matrix-strategy span { display: inline-block; writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; }
+.matrix-fit { font-weight: 700; }
+.matrix-score { min-width: 2.5rem; }
+.matrix-score[data-score="3"] { background: var(--accent); color: var(--bg); font-weight: 700; }
+.matrix-score[data-score="2"] { background: color-mix(in srgb, var(--accent) 42%, var(--bg)); }
+.matrix-score[data-score="1"] { background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
+.matrix-score[data-score="0"] { color: var(--muted); }
+.matrix th.matrix-role, .matrix td.matrix-role { text-align: left; white-space: normal; min-width: 13rem; padding-left: 0.75rem; font-size: 0.8125rem; font-weight: 400; color: var(--muted); }
+.matrix-weights td, .matrix-weights th { border-bottom: var(--rule-weight) solid var(--rule); font-size: 0.8125rem; }
+.matrix input, .matrix button { font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--rule); border-radius: var(--radius); padding: 0.2rem 0.3rem; }
+.matrix input { width: 2.75rem; text-align: center; }
+.matrix button { cursor: pointer; white-space: nowrap; }
+.matrix button:hover { background: var(--fg); color: var(--bg); }
+
+/* Private placeholder: where held-back content will appear once there is a login. */
+.private { margin: 2rem 0; padding: 1.25rem 1.5rem; border: var(--rule-weight) solid var(--rule); }
+.private-label { margin: 0 0 0.5rem; font-size: 0.8125rem; font-weight: 700; letter-spacing: var(--label-tracking); text-transform: var(--label-transform); }
+.private-title { margin: 0 0 0.35rem; font-family: var(--font-display); font-weight: var(--heading-weight); font-size: 1.375rem; line-height: 1.2; }
+.private p:last-child { margin-bottom: 0; }
+.chapter-body > .private { max-width: var(--measure); }
+.chapter-body > .figure:has(.matrix) { max-width: none; }
+.matrix th.matrix-role, .matrix td.matrix-role { min-width: 11rem; }
+
 /* Docs prose */
 .prose { max-width: var(--measure); padding: 2.5rem 0 0; }
 .prose h1 { font-family: var(--font-display); font-weight: var(--display-weight); font-size: clamp(2.5rem, 8vw, 4rem); line-height: 1; letter-spacing: var(--display-tracking); margin: 0 0 1rem; }
@@ -167,3 +195,11 @@ thead th { border-bottom: var(--rule-weight) solid var(--rule); font-size: 0.812
 .prose .figure { margin: 1.5rem 0; }
 
 .badge { display: inline-block; border: 1px solid var(--rule); padding: 0.1rem 0.5rem; font-size: 0.8125rem; }
+
+/* Phone: keep the pinned platform column narrow so the scores have room to scroll. */
+@media (max-width: 40rem) {
+  .figure:has(.matrix) { padding: 1rem 0.75rem; }
+  .matrix tbody th:first-child, .matrix thead th:first-child { white-space: normal; min-width: 6.25rem; max-width: 6.75rem; font-size: 0.8125rem; line-height: 1.25; padding-right: 0.4rem; }
+  .matrix-score { min-width: 2.1rem; }
+  .matrix input { width: 2.1rem; padding: 0.15rem 0; }
+}

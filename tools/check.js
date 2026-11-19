@@ -111,6 +111,42 @@ for (const f of files.filter((f) => f.startsWith(path.join('content', 'chapters'
 }
 if (!read('index.html').includes('id="contents"')) fail('index.html: the contents list is missing');
 
+// 9. The platform fit matrix: the data has only public fields, the scores are
+//    valid, the weighted fit matches the source sheet, and Chapter 13 shows it
+//    with a private placeholder for the personal parts.
+const fitPath = 'content/data/platform-fit.json';
+if (!fs.existsSync(path.join(root, fitPath))) fail(`${fitPath}: missing`);
+else {
+  const fit = JSON.parse(read(fitPath));
+  const { weightedFit } = require('./build.js');
+  const allowedTop = ['asOf', 'scale', 'strategies', 'platforms'];
+  for (const k of Object.keys(fit)) if (!allowedTop.includes(k)) fail(`${fitPath}: unexpected field "${k}" (public fields only)`);
+  for (const st of fit.strategies) {
+    for (const k of Object.keys(st)) if (!['name', 'weight'].includes(k)) fail(`${fitPath}: strategy field "${k}" is not allowed`);
+    if (![0, 1, 2, 3].includes(st.weight)) fail(`${fitPath}: weight for ${st.name} must be 0 to 3`);
+  }
+  for (const pl of fit.platforms) {
+    for (const k of Object.keys(pl)) if (!['name', 'role', 'scores'].includes(k)) fail(`${fitPath}: platform field "${k}" is not allowed (public fields only)`);
+    if (pl.scores.length !== fit.strategies.length) fail(`${fitPath}: ${pl.name} needs ${fit.strategies.length} scores`);
+    if (!pl.scores.every((v) => [0, 1, 2, 3].includes(v))) fail(`${fitPath}: ${pl.name} has a score outside 0 to 3`);
+  }
+  // Weighted fit under the default weights, as the source sheet shows it.
+  const expected = { 'Schwab (thinkorswim)': '2.79', 'Interactive Brokers': '2.36', 'Fidelity': '2.29', 'E*Trade': '2.14',
+    'Webull': '1.93', 'Moomoo': '1.93', 'TradeStation': '1.93', 'Robinhood': '1.79', 'Public': '1.64', 'tastytrade': '1.50',
+    'SoFi': '1.36', 'Merrill Edge': '1.29', 'M1': '1.21', 'Composer': '1.21', 'Alpaca': '1.21', 'Vanguard': '0.93',
+    'Betterment / Wealthfront': '0.79' };
+  const weights = fit.strategies.map((st) => st.weight);
+  if (fit.platforms.length !== Object.keys(expected).length) fail(`${fitPath}: expected ${Object.keys(expected).length} platforms`);
+  for (const pl of fit.platforms) {
+    const got = weightedFit(pl.scores, weights).toFixed(2);
+    if (expected[pl.name] !== got) fail(`${fitPath}: ${pl.name} weighted fit is ${got}, the sheet says ${expected[pl.name]}`);
+  }
+  const ch13 = fs.existsSync(path.join(root, 'chapters/13-own-the-process-rent-the-tools.html')) ? read('chapters/13-own-the-process-rent-the-tools.html') : '';
+  if (!ch13.includes('data-matrix')) fail('chapters/13: the platform fit matrix is missing');
+  if (!ch13.includes('data-style="private"')) fail('chapters/13: the private placeholder is missing');
+  if (!ch13.includes('js/matrix.js')) fail('chapters/13: js/matrix.js is not loaded');
+}
+
 // 7. No em dashes in anything a person reads.
 for (const file of files.filter((f) => /\.(html|md|css|js|yml)$/.test(f))) {
   if (read(file).includes(String.fromCharCode(8212))) fail(`${file}: contains an em dash`);

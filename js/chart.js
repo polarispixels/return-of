@@ -43,6 +43,20 @@
     return { cash: cash, reinvested: cash * Math.pow(1 + yieldRate, year - 1) };
   }
 
+  // Average result per trade.
+  function expectancy(winRate, avgWin, avgLoss) { return winRate * avgWin - (1 - winRate) * avgLoss; }
+
+  // Average win, as a multiple of the average loss, needed to break even at `winRate`.
+  function breakevenPayoff(winRate) { return (1 - winRate) / winRate; }
+
+  // What a gross edge per trade leaves after a list of costs per trade.
+  function netAfterCosts(gross, costs) { return costs.reduce(function (n, c) { return n - c; }, gross); }
+
+  // Trader B from the Chapter 3 table, as 20 trades in a made-up order: wins of $100
+  // and losses of $200, three wins to two losses, repeated.
+  var TRADER_B = [];
+  for (var t = 0; t < 4; t++) TRADER_B.push(100, 100, -200, 100, -200);
+
   // What is left of 1 after a gain of `p` and then a loss of `p` (either order).
   function roundTrip(p) { return (1 + p) * (1 - p); }
 
@@ -815,12 +829,196 @@
       'If yes, ask what it could make. If no, make it smaller or wait until the idea is ready.', out);
   }
 
+  // ---- Kit: a labeled box for flow diagrams. One line is 40px tall, two lines 50px. ----
+  // opts.fill: a token to fill with (text turns to --bg); opts.stroke: outline token.
+
+  function box(c, x, y, bw, lines, opts) {
+    opts = opts || {};
+    lines = [].concat(lines);
+    var bh = lines.length > 1 ? 50 : 40;
+    return '<rect x="' + f1(x) + '" y="' + f1(y) + '" width="' + f1(bw) + '" height="' + bh + '" fill="' +
+      (opts.fill ? c.token(opts.fill) : 'none') + '" stroke="' + c.token(opts.fill || opts.stroke || '--fg') + '" stroke-width="2"/>' +
+      text(c, x + bw / 2, y + (lines.length > 1 ? 21 : 25), lines, opts.fill ? '--bg' : '--fg', 'text-anchor="middle" font-weight="700"');
+  }
+
+  // ---- Fig. 3.1: a method is not an edge until results say so ----
+
+  function drawEdgeChain(el) {
+    var STEPS = [
+      { lines: ['Information, analysis, discipline,', 'low costs, or patience'], opts: { stroke: '--muted' }, note: 'Where an edge can come from' },
+      { lines: ['A written method'], opts: { fill: '--fg' }, note: 'Entry, stop, and target' },
+      { lines: ['Many trades, after costs'], opts: {}, note: 'Not one big win' },
+      { lines: ['Edge, or no edge'], opts: { fill: '--accent' }, note: 'Only results can say' }
+    ];
+    var c = context(el), token = c.token, w = c.width;
+    var wide = w >= 560, bw = wide ? Math.min(340, w * 0.5) : w, gap = 26, y = 0, out = [];
+
+    STEPS.forEach(function (s, i) {
+      var bh = s.lines.length > 1 ? 50 : 40;
+      out.push(box(c, 0, y, bw, s.lines, s.opts));
+      if (wide) out.push(text(c, bw + 16, y + bh / 2 + 4, s.note, '--muted'));
+      if (i < STEPS.length - 1) out.push(arrow(bw / 2, y + bh + 2, bw / 2, y + bh + gap - 2, token('--fg')));
+      y += bh + gap;
+    });
+
+    mount(el, w, y - gap + 2, 'Diagram: ' + STEPS.map(function (s) { return s.lines.join(' '); }).join(', then ') +
+      '. A method is not an edge until results over many trades, after costs, show one.', out);
+  }
+
+  // ---- Fig. 3.2: costs can turn a small edge negative ----
+
+  function drawCostWaterfall(el) {
+    var GROSS = 40, COSTS = [{ name: ['Spreads,', 'fees'], short: 'Fees', v: 15 }, { name: ['Taxes'], short: 'Tax', v: 10 },
+      { name: ['Your', 'time'], short: 'Time', v: 20 }];
+    var Y_MIN = -10, Y_MAX = 45;
+    var c = context(el), token = c.token, w = c.width;
+    var h = Math.round(clamp(w * 0.5, 260, 340));
+    var m = { top: 20, right: 8, bottom: 44, left: 44 };
+    var cols = COSTS.length + 2, col = (w - m.left - m.right) / cols, bar = clamp(col * 0.5, 22, 70);
+    var y = function (v) { return h - m.bottom - ((v - Y_MIN) / (Y_MAX - Y_MIN)) * (h - m.top - m.bottom); };
+    var cx = function (i) { return m.left + col * (i + 0.5); };
+    var signed = function (v) { return (v < 0 ? '&minus;$' : '+$') + Math.abs(v); };
+    var out = [], level = GROSS, net = netAfterCosts(GROSS, COSTS.map(function (k) { return k.v; }));
+
+    [-10, 0, 10, 20, 30, 40].forEach(function (t) {
+      out.push('<line x1="' + m.left + '" x2="' + f1(w - m.right) + '" y1="' + f1(y(t)) + '" y2="' + f1(y(t)) + '" stroke="' +
+        token(t === 0 ? '--fg' : '--muted') + '" stroke-width="' + (t === 0 ? 2 : 0.5) + '"/>');
+      out.push(text(c, m.left - 8, y(t) + 4, (t < 0 ? '&minus;$' : '$') + Math.abs(t), '--muted', 'text-anchor="end"'));
+    });
+    function column(i, from, to, fill, label, name) {
+      var top = Math.min(y(from), y(to)), ht = Math.max(2, Math.abs(y(from) - y(to)));
+      out.push('<rect x="' + f1(cx(i) - bar / 2) + '" y="' + f1(top) + '" width="' + f1(bar) + '" height="' + f1(ht) + '" fill="' + token(fill) + '"/>');
+      out.push(text(c, cx(i), (to < from ? Math.max(y(from), y(to)) + 15 : top - 6), label, '--fg', 'text-anchor="middle" font-weight="700"'));
+      out.push(text(c, cx(i), h - m.bottom + 18, w < 420 ? name[0] === 'Gross' ? 'Gross' : name.short || name[0] : name, '--muted',
+        'text-anchor="middle"'));
+    }
+    column(0, 0, GROSS, '--fg', signed(GROSS), ['Gross', 'edge']);
+    COSTS.forEach(function (k, i) {
+      out.push('<line x1="' + f1(cx(i) + bar / 2) + '" x2="' + f1(cx(i + 1) - bar / 2) + '" y1="' + f1(y(level)) + '" y2="' + f1(y(level)) +
+        '" stroke="' + token('--muted') + '" stroke-width="1" stroke-dasharray="3 3"/>');
+      column(i + 1, level, level - k.v, '--muted', signed(-k.v), Object.assign(k.name.slice(), { short: k.short }));
+      level -= k.v;
+    });
+    out.push('<line x1="' + f1(cx(COSTS.length) + bar / 2) + '" x2="' + f1(cx(cols - 1) - bar / 2) + '" y1="' + f1(y(level)) + '" y2="' +
+      f1(y(level)) + '" stroke="' + token('--muted') + '" stroke-width="1" stroke-dasharray="3 3"/>');
+    column(cols - 1, 0, net, net < 0 ? '--accent' : '--fg', signed(net), ['Net']);
+
+    mount(el, w, h, 'Waterfall chart of hypothetical round numbers per trade: a gross edge of $' + GROSS + ', less ' +
+      COSTS.map(function (k) { return '$' + k.v + ' for ' + k.name.join(' ').toLowerCase(); }).join(', ') +
+      ', leaves ' + (net < 0 ? 'minus ' : '') + '$' + Math.abs(net) + ' a trade.', out);
+  }
+
+  // ---- Fig. 3.3: what memory keeps, and what the journal shows ----
+
+  function drawMemory(el) {
+    var c = context(el), token = c.token, w = c.width;
+    var m = { left: 4, right: 92 }, ROW = 110, HALF = 34, MAX = 200;
+    var step = (w - m.left - m.right) / TRADER_B.length, bw = Math.max(3, step - 2), out = [];
+    var wins = TRADER_B.filter(function (v) { return v > 0; });
+    var total = TRADER_B.reduce(function (a, b) { return a + b; }, 0);
+
+    [{ title: 'What you remember', memory: true }, { title: 'What the journal shows', memory: false }].forEach(function (r, k) {
+      var top = k * ROW, zero = top + 22 + HALF;
+      out.push(text(c, m.left, top + 14, r.title, '--fg', 'font-weight="700"'));
+      TRADER_B.forEach(function (v, i) {
+        var ht = (Math.abs(v) / MAX) * HALF, x = m.left + i * step + 1;
+        var win = v > 0, fill = win ? '--fg' : '--accent', faded = r.memory && !win;
+        out.push('<rect x="' + f1(x) + '" y="' + f1(win ? zero - ht : zero) + '" width="' + f1(bw) + '" height="' + f1(ht) + '" fill="' +
+          token(fill) + '"' + (faded ? ' fill-opacity="0.18"' : '') + '/>');
+      });
+      out.push('<line x1="' + m.left + '" x2="' + f1(w - m.right + 4) + '" y1="' + zero + '" y2="' + zero + '" stroke="' + token('--fg') + '" stroke-width="1"/>');
+      var lx = w - m.right + 12;
+      if (r.memory) out.push(text(c, lx, zero - 4, [wins.length + ' wins', 'stand out'], '--fg', 'font-weight="700"'));
+      else out.push(text(c, lx, zero - 4, ['Net', (total < 0 ? '&minus;' : '+') + money(Math.abs(total))], '--fg', 'font-weight="700"'));
+    });
+
+    mount(el, w, 2 * ROW - 12, 'Two rows of the same 20 trades, one bar per trade: wins of $100 up, losses of $200 down. ' +
+      'In the remembered row the losses are faded and the ' + wins.length + ' wins stand out. The journal row shows them all: net ' +
+      (total < 0 ? 'minus ' : '') + money(Math.abs(total)) + '.', out);
+  }
+
+  // ---- Fig. 3.4: the expectancy map ----
+  // Win rate across, average win as a multiple of average loss up. Above the curve,
+  // a method makes money on average; below it, it loses.
+
+  function drawExpectancyMap(el) {
+    var TRADERS = [{ name: 'A', p: 0.4, win: 300, loss: 100 }, { name: 'B', p: 0.6, win: 100, loss: 200 }];
+    var X_MIN = 0.1, X_MAX = 0.9, Y_MAX = 4;
+    var c = context(el), token = c.token, w = c.width;
+    var h = Math.round(clamp(w * 0.6, 280, 420));
+    var m = { top: 26, right: 12, bottom: 30, left: 34 };
+    var x = function (p) { return m.left + ((p - X_MIN) / (X_MAX - X_MIN)) * (w - m.left - m.right); };
+    var y = function (r) { return h - m.bottom - (Math.min(r, Y_MAX) / Y_MAX) * (h - m.top - m.bottom); };
+    var curve = [], out = [];
+
+    for (var p = X_MIN; p <= X_MAX + 1e-9; p += 0.01) curve.push(f1(x(p)) + ',' + f1(y(breakevenPayoff(p))));
+    // Shade the money-making region: above the curve, up to the top of the chart.
+    out.push('<polygon points="' + f1(x(X_MIN)) + ',' + f1(y(Y_MAX)) + ' ' + curve.join(' ') + ' ' + f1(x(X_MAX)) + ',' + f1(y(Y_MAX)) +
+      '" fill="' + token('--fg') + '" fill-opacity="0.07"/>');
+    [0, 1, 2, 3, 4].forEach(function (t) {
+      out.push('<line x1="' + m.left + '" x2="' + f1(w - m.right) + '" y1="' + f1(y(t)) + '" y2="' + f1(y(t)) + '" stroke="' +
+        token(t === 0 ? '--fg' : '--muted') + '" stroke-width="' + (t === 0 ? 2 : 0.5) + '"/>');
+      out.push(text(c, m.left - 8, y(t) + 4, t + '&times;', '--muted', 'text-anchor="end"'));
+    });
+    [0.1, 0.3, 0.5, 0.7, 0.9].forEach(function (t) {
+      out.push(text(c, x(t), h - 8, (t === 0.1 && w >= 420 ? 'Win rate ' : '') + Math.round(t * 100) + '%', '--muted',
+        'text-anchor="' + (t === 0.1 ? 'start' : t === 0.9 ? 'end' : 'middle') + '"'));
+    });
+    out.push(polyline(curve, token('--fg'), 2));
+    out.push(text(c, x(0.62), y(3.2), 'Makes money', '--fg', 'font-weight="700"'));
+    out.push(text(c, x(0.16), y(0.35), 'Loses money', '--accent', 'font-weight="700"'));
+    out.push(text(c, m.left, 12, 'Average win &divide; average loss', '--fg', 'font-weight="700"'));
+
+    TRADERS.forEach(function (t) {
+      var r = t.win / t.loss, e = expectancy(t.p, t.win, t.loss), color = token(e >= 0 ? '--fg' : '--accent');
+      out.push('<circle cx="' + f1(x(t.p)) + '" cy="' + f1(y(r)) + '" r="6" fill="' + color + '" stroke="' + token('--bg') + '" stroke-width="2"/>');
+      // A loser sits just under the curve, so its label goes below the dot, clear of the line.
+      var below = e < 0;
+      out.push(text(c, below ? x(t.p) : x(t.p) + 10, below ? y(r) + 20 : y(r) + 4, 'Trader ' + t.name + ': ' + (e < 0 ? '&minus;' : '+') +
+        money(Math.abs(e)), '--fg', 'font-weight="700"' + (below ? ' text-anchor="middle"' : '')));
+    });
+
+    mount(el, w, h, 'Chart of win rate against average win divided by average loss. A curve marks break-even: ' +
+      'at 50% wins, wins must equal losses; at 25%, wins must be 3 times losses. Trader A, 40% wins at 3 times, sits above the curve ' +
+      'and makes $60 a trade. Trader B, 60% wins at half, sits below it and loses $20 a trade.', out);
+  }
+
+  // ---- Fig. 3.5: the core is the default; the satellite earns its place ----
+
+  function drawEdgeLoop(el) {
+    var c = context(el), token = c.token, w = c.width;
+    var x0 = 24, bw = Math.min(360, w - 30), cx = x0 + bw / 2, out = [];
+    var half = (bw - 12) / 2, lx = x0 + half / 2, rx = x0 + half + 12 + half / 2;
+
+    out.push(box(c, x0, 0, bw, 'Every dollar starts in the core', { fill: '--fg' }));
+    out.push(arrow(cx, 42, cx, 62, token('--fg')));
+    out.push(box(c, x0, 64, bw, 'A small satellite tests a method', { fill: '--accent' }));
+    out.push(arrow(cx, 106, cx, 126, token('--fg')));
+    out.push(box(c, x0, 128, bw, ['The journal measures', 'expectancy and adherence']));
+    out.push('<path d="M' + f1(cx) + ',180 V196 M' + f1(lx) + ',196 H' + f1(rx) + '" fill="none" stroke="' + token('--fg') + '" stroke-width="2"/>');
+    out.push(arrow(lx, 195, lx, 222, token('--fg')));
+    out.push(arrow(rx, 195, rx, 222, token('--accent')));
+    out.push(text(c, lx + 8, 214, 'Edge shown', '--fg', 'font-weight="700"'));
+    out.push(text(c, rx + 8, 214, 'No edge', '--accent', 'font-weight="700"'));
+    out.push(box(c, x0, 224, half, ['The satellite may', 'grow, within rules']));
+    out.push(box(c, x0 + half + 12, 224, half, ['The money goes', 'back to the core'], { stroke: '--accent' }));
+    // Loop back: from the "no edge" box, under the diagram and up the left side to the core.
+    out.push('<path d="M' + f1(rx) + ',276 V290 H' + f1(x0 - 14) + ' V20 H' + f1(x0 - 3) + '" fill="none" stroke="' + token('--accent') +
+      '" stroke-width="2"/>');
+    out.push(arrowhead(x0 - 1, 20, 0, token('--accent')));
+
+    mount(el, w, 294, 'Flowchart: every dollar starts in the core. A small satellite tests a method. The journal measures ' +
+      'expectancy and adherence. If it shows an edge, the satellite may grow within the rules. If not, the money goes back to the core.', out);
+  }
+
   // ---- Registry and wiring ----
 
   var CHARTS = {
     compound: drawCompound, breakeven: drawBreakeven,
     fees: drawFees, pie: drawPie, 'dividend-loop': drawDividendLoop, 'dividend-income': drawDividendIncome,
     drift: drawDrift, 'core-default': drawCoreDefault,
+    'edge-chain': drawEdgeChain, 'cost-waterfall': drawCostWaterfall, memory: drawMemory,
+    'expectancy-map': drawExpectancyMap, 'edge-loop': drawEdgeLoop,
     'round-trip': drawRoundTrip, 'breakeven-curve': drawBreakevenCurve, survivors: drawSurvivors, habits: drawHabits,
     questions: drawQuestions,
     recovery: drawRecovery, buckets: drawBuckets, cushion: drawCushion, 'satellite-cap': drawSatelliteCap
@@ -830,6 +1028,7 @@
     module.exports = {
       grow: grow, breakeven: breakeven, futureValue: futureValue, drift: drift,
       mostUnderweight: mostUnderweight, dividendIncome: dividendIncome, pie: PIE,
+      expectancy: expectancy, breakevenPayoff: breakevenPayoff, netAfterCosts: netAfterCosts, traderB: TRADER_B,
       roundTrip: roundTrip, lossPath: lossPath,
       recoveryYears: recoveryYears, forcedSale: forcedSale, portfolioHit: portfolioHit, charts: Object.keys(CHARTS)
     };

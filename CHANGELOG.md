@@ -4,6 +4,16 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-20
+
+Chapter 3 gets a figure for every section.
+
+### Added
+
+- Chapter 3, Know Your Edge: five figures. Fig. 3.1, a method is not yet an edge. Fig. 3.2, costs turning a small hypothetical edge negative. Fig. 3.3, Trader B's 20 trades as memory keeps them and as the journal shows them. Fig. 3.4, the expectancy map: win rate against average win over average loss, with the break-even curve and both traders. Fig. 3.5, the loop from core to satellite test to journal, and back.
+- Kit: a shared `box` for flow diagrams.
+- Deploy checks for the new arithmetic: expectancy, the break-even payoff, net after costs, and Trader B's made-up sequence.
+
 ## [0.7.0] - 2026-11-20
 
 Chapter 1 gets a figure for every section.

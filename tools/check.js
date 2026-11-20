@@ -109,6 +109,20 @@ if (typeof chart.grow !== 'function' || typeof chart.breakeven !== 'function' ||
     if (chart.lossPath(10000, 0.07, 30, 10, 0.5).toFixed(0) !== '38061') fail('chart.lossPath: Fig. 1.3 ends at $38,061 with the fall');
     if (chart.lossPath(10000, 0.07, 30, 99, 0.5).toFixed(0) !== '76123') fail('chart.lossPath: Fig. 1.3 ends at $76,123 without it');
   }
+  // Chapter 3 figures.
+  if (typeof chart.expectancy !== 'function' || typeof chart.breakevenPayoff !== 'function' || typeof chart.netAfterCosts !== 'function') {
+    fail('js/chart.js: must export expectancy, breakevenPayoff, and netAfterCosts');
+  } else {
+    if (!near(chart.expectancy(0.4, 300, 100), 60)) fail('chart.expectancy: Trader A is +$60 a trade');
+    if (!near(chart.expectancy(0.6, 100, 200), -20)) fail('chart.expectancy: Trader B is -$20 a trade');
+    if (!near(chart.breakevenPayoff(0.5), 1)) fail('chart.breakevenPayoff: at a 50% win rate, wins must equal losses');
+    if (!near(chart.breakevenPayoff(0.25), 3)) fail('chart.breakevenPayoff: at a 25% win rate, wins must be 3 times losses');
+    if (!near(chart.netAfterCosts(40, [15, 10, 20]), -5)) fail('chart.netAfterCosts: Fig. 3.2 nets to -$5');
+    const seq = chart.traderB;
+    if (!Array.isArray(seq) || seq.length !== 20 || seq.filter((v) => v > 0).length !== 12 || seq.reduce((a, b) => a + b, 0) !== -400) {
+      fail('chart.traderB: 20 trades, 12 wins of $100 and 8 losses of $200, netting -$400');
+    }
+  }
   // Chapter 2 figures.
   if (typeof chart.recoveryYears !== 'function') fail('js/chart.js: must export recoveryYears');
   else {

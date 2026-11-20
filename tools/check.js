@@ -111,6 +111,14 @@ if (typeof chart.grow !== 'function' || typeof chart.breakeven !== 'function' ||
     if (chart.lossPath(10000, 0.07, 30, 10, 0.5).toFixed(0) !== '38061') fail('chart.lossPath: Fig. 1.3 ends at $38,061 with the fall');
     if (chart.lossPath(10000, 0.07, 30, 99, 0.5).toFixed(0) !== '76123') fail('chart.lossPath: Fig. 1.3 ends at $76,123 without it');
   }
+  // Chapter 11 figures.
+  if (typeof chart.sizedPath !== 'function' || typeof chart.adherence !== 'function') fail('js/chart.js: must export sizedPath and adherence');
+  else {
+    const rules = chart.sizedPath([0.01, 0.01, 0.01]), revenge = chart.sizedPath([0.01, 0.02, 0.04, 0.08]);
+    if ((1 - rules[3]).toFixed(3) !== '0.030') fail('chart.sizedPath: three 1% losses cost about 3%');
+    if ((1 - revenge[4]).toFixed(3) !== '0.143') fail('chart.sizedPath: losses of 1, 2, 4, and 8% cost about 14.3%');
+    if (!near(chart.adherence([1, 1, 0, 1]), 0.75)) fail('chart.adherence: 3 of 4 trades by the rules is 75%');
+  }
   // Chapter 10 figures: the streak arithmetic, and the four sized trades must match the table.
   if (typeof chart.streakLeft !== 'function' || !Array.isArray(chart.sizedTrades)) fail('js/chart.js: must export streakLeft and sizedTrades');
   else {

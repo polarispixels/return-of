@@ -4,6 +4,19 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-11-20
+
+Chapter 11 gets a figure for every section, and Chapter 5 agrees with Chapter 9 on tuition.
+
+### Added
+
+- Chapter 11, Disposition: five figures. Fig. 11.1, decide while calm, check under pressure. Fig. 11.2, the four traps, each stopped by a rule from an earlier chapter. Fig. 11.3, revenge sizing against the rules: about 14% down against about 3%. Fig. 11.4, a week with the routine every day and an order only on the day with a setup. Fig. 11.5, two months measured by adherence: 75% does not count, 95% does.
+- Deploy checks for the loss-path and adherence arithmetic.
+
+### Changed
+
+- Chapter 5, Fig. 5.4: the crossed-out path reads "No top-ups, no chasing it back," and the caption cites Chapter 9's rule that an empty budget ends the month. The open question now asks only how large the budget should be.
+
 ## [0.16.0] - 2026-11-20
 
 Chapter 10 gets a figure for every section.

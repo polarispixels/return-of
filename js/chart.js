@@ -55,6 +55,17 @@
     ['Systematic', 'Depends on rules', 'High upfront, low ongoing', 'systematic']
   ].map(function (r, i) { return { num: i + 1, name: r[0], risk: r[1], effort: r[2], group: r[3] }; });
 
+  // What is left of 1 after a run of losses, each costing its own share of what remains.
+  // The first entry is the start.
+  function sizedPath(risks) {
+    var left = 1, path = [1];
+    risks.forEach(function (r) { left *= 1 - r; path.push(left); });
+    return path;
+  }
+
+  // Share of trades that followed the rules (1 = followed, 0 = broke one).
+  function adherence(marks) { return marks.reduce(function (s, v) { return s + v; }, 0) / marks.length; }
+
   // What is left after `n` losses in a row, each costing `risk` of what remains.
   function streakLeft(risk, n) { return Math.pow(1 - risk, n); }
 
@@ -1090,6 +1101,160 @@
       'expectancy and adherence. If it shows an edge, the satellite may grow within the rules. If not, the money goes back to the core.', out);
   }
 
+  // ---- Fig. 11.1: decide while calm, check under pressure ----
+
+  function drawCalmCheck(el) {
+    var c = context(el), token = c.token, w = c.width, narrow = w < 480, out = [];
+    var split = narrow ? w : w * 0.46, gap = narrow ? 0 : 12;
+
+    function zone(x, y, zw, tok, title, lines, cross) {
+      out.push('<rect x="' + f1(x) + '" y="' + y + '" width="' + f1(zw) + '" height="30" fill="' + token(tok) + '"/>');
+      out.push(text(c, x + 10, y + 20, title, '--bg', 'font-weight="700"'));
+      out.push(text(c, x, y + 50, lines, '--fg'));
+      if (cross) {
+        out.push(text(c, x, y + 50 + lines.length * 15 + 6, cross, '--accent'));
+        out.push('<line x1="' + f1(x) + '" x2="' + f1(x + 150) + '" y1="' + f1(y + 50 + lines.length * 15 + 2) + '" y2="' + f1(y + 50 + lines.length * 15 + 2) +
+          '" stroke="' + token('--accent') + '" stroke-width="1.5"/>');
+      }
+    }
+    zone(0, 0, split - gap / 2, '--accent-2', 'Before the trade: calm', ['Write the rules down:', 'entry, stop, target, size, cap.', 'This is when you decide.']);
+    var ox = narrow ? 0 : split + gap / 2, oy = narrow ? 110 : 0;
+    if (narrow) out.push(arrow(w / 2, 82, w / 2, oy - 6, token('--fg')));
+    else out.push(arrow(split - gap / 2 - 6, 15, split + gap / 2 + 2, 15, token('--bg')));
+    zone(ox, oy, w - ox, '--accent', 'During the trade: pressure', ['Check the moment against the plan.', 'The written version is the boss.'],
+      'Deciding fresh, in the moment');
+
+    mount(el, w, oy + 112, 'Timeline of two zones. Before the trade, while calm, write the rules down; that is when you decide. ' +
+      'During the trade, under pressure, only check the moment against the plan. Deciding fresh in the moment is crossed out.', out);
+  }
+
+  // ---- Fig. 11.2: each trap has a rule in its way ----
+
+  function drawTraps(el) {
+    var ROWS = [
+      { trap: 'Loss aversion', does: 'You will not close a loser', rule: ['A stop written', 'before entry'] },
+      { trap: 'Selling winners, holding losers', does: 'Small wins, large losses', rule: ['Target and stop', 'in the plan'] },
+      { trap: 'Overconfidence', does: 'You size up, skip the stop', rule: ['The 1% rule'] },
+      { trap: 'Fear of missing out', does: 'You buy after the move', rule: ['No written entry,', 'no trade'] }
+    ];
+    var c = context(el), token = c.token, w = c.width, ROW = 76, wall = Math.round(clamp(w * 0.55, 150, 440)), out = [];
+
+    ROWS.forEach(function (r, i) {
+      var top = i * ROW, ay = top + 46;
+      out.push(text(c, 0, top + 14, r.trap, '--fg', 'font-weight="700"'));
+      out.push(text(c, 0, top + 30, r.does, '--muted'));
+      out.push(arrow(0, ay, wall - 2, ay, token('--accent')));
+      out.push('<rect x="' + wall + '" y="' + (ay - 15) + '" width="8" height="30" fill="' + token('--fg') + '"/>');
+      out.push(text(c, wall + 18, ay + (r.rule.length > 1 ? -3 : 5), r.rule, '--fg', 'font-weight="700"'));
+    });
+
+    mount(el, w, ROWS.length * ROW - 12, 'Diagram: four traps, each stopped by a rule. ' + ROWS.map(function (r) {
+      return r.trap + ' (' + r.does.toLowerCase() + '): stopped by ' + r.rule.join(' ').toLowerCase();
+    }).join('. ') + '.', out);
+  }
+
+  // ---- Fig. 11.3: revenge sizing against the rules ----
+
+  function drawRevenge(el) {
+    var RULES = [0.01, 0.01, 0.01], REVENGE = [0.01, 0.02, 0.04, 0.08], CAP = 3;
+    var c = context(el), token = c.token, w = c.width, narrow = w < 420;
+    var h = Math.round(clamp(w * 0.5, 250, 340));
+    var m = { top: narrow ? 44 : 26, right: narrow ? 12 : 200, bottom: 30, left: 44 };
+    var x = function (k) { return m.left + (k / REVENGE.length) * (w - m.left - m.right); };
+    var y = function (v) { return h - m.bottom - ((v - 0.84) / 0.16) * (h - m.top - m.bottom); };
+    var rules = sizedPath(RULES), revenge = sizedPath(REVENGE), out = [];
+    var steps = function (path) {
+      var pts = [];
+      path.forEach(function (v, k) { if (k) pts.push(f1(x(k)) + ',' + f1(y(path[k - 1]))); pts.push(f1(x(k)) + ',' + f1(y(v))); });
+      return pts;
+    };
+
+    hGrid(c, out, m, w, y, [0.85, 0.9, 0.95, 1], function (t) { return Math.round(t * 100) + '%'; });
+    for (var k = 1; k <= REVENGE.length; k++) out.push(text(c, x(k), h - 8, (k === 1 && !narrow ? 'Loss ' : '') + k, '--muted', 'text-anchor="middle"'));
+    out.push(text(c, 0, 14, 'Satellite left after a run of losses', '--fg', 'font-weight="700"'));
+    out.push(polyline(steps(revenge), token('--accent'), 3));
+    out.push(polyline(steps(rules), token('--fg'), 3));
+    out.push('<line x1="' + f1(x(CAP)) + '" x2="' + f1(x(CAP)) + '" y1="' + m.top + '" y2="' + f1(h - m.bottom) + '" stroke="' + token('--muted') +
+      '" stroke-width="1" stroke-dasharray="2 3"/>');
+    out.push(text(c, x(CAP) + 4, m.top + 12, narrow ? 'Cap' : 'Cap reached: done', '--muted'));
+    var lost = function (p) { return '&minus;' + (Math.round((1 - p[p.length - 1]) * 1000) / 10) + '%'; };
+    if (narrow) {
+      out.push('<line x1="0" x2="18" y1="26" y2="26" stroke="' + token('--fg') + '" stroke-width="3"/>');
+      out.push(text(c, 24, 30, 'Rules: ' + lost(rules), '--fg', 'font-weight="700"'));
+      out.push('<line x1="130" x2="148" y1="26" y2="26" stroke="' + token('--accent') + '" stroke-width="3"/>');
+      out.push(text(c, 154, 30, 'Revenge: ' + lost(revenge), '--accent', 'font-weight="700"'));
+    } else {
+      out.push(text(c, x(CAP) + 10, y(rules[CAP]) + 18, ['Rules: 1% a trade,', 'stop at the cap: ' + lost(rules)], '--fg', 'font-weight="700"'));
+      out.push(text(c, x(REVENGE.length) + 10, y(revenge[REVENGE.length]) + 4, ['Revenge: double', 'after each loss: ' + lost(revenge)], '--accent', 'font-weight="700"'));
+    }
+
+    mount(el, w, h, 'Step chart of the satellite after a run of losses. Following the rules, each loss costs 1% and the cap stops the day after ' +
+      'three: about 3% down. Doubling after each loss (1, 2, 4, then 8%) costs about 14% after four.', out);
+  }
+
+  // ---- Fig. 11.4: the routine every day, an order only with a setup ----
+
+  function drawRestraint(el) {
+    var DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+    var ROWS = [
+      { name: 'Morning routine', on: [1, 1, 1, 1, 1], token: '--fg' },
+      { name: 'A valid setup', on: [0, 0, 1, 0, 0], token: '--accent-2' },
+      { name: 'Orders placed', on: [0, 0, 1, 0, 0], token: '--accent' },
+      { name: 'Changes to the core', on: [0, 0, 0, 0, 0], token: '--fg' }
+    ];
+    var c = context(el), token = c.token, w = c.width, left = w < 420 ? 128 : 170, ROW = 36, top = 22, out = [];
+    var cell = Math.min(56, (w - left) / DAYS.length), size = Math.min(26, cell - 8);
+
+    DAYS.forEach(function (d, j) { out.push(text(c, left + j * cell + cell / 2, 12, d, '--muted', 'text-anchor="middle"')); });
+    ROWS.forEach(function (r, i) {
+      var cy = top + i * ROW;
+      out.push(text(c, 0, cy + size / 2 + 4, r.name, '--fg', 'font-weight="700"'));
+      r.on.forEach(function (v, j) {
+        var x = left + j * cell + (cell - size) / 2;
+        out.push('<rect x="' + f1(x) + '" y="' + cy + '" width="' + f1(size) + '" height="' + f1(size) + '" fill="' + (v ? token(r.token) : 'none') +
+          '" stroke="' + token(v ? r.token : '--muted') + '" stroke-width="' + (v ? 0 : 1) + '"' + (v ? '' : ' stroke-opacity="0.45"') + '/>');
+      });
+    });
+    var ny = top + ROWS.length * ROW + 10;
+    var note = w < 420 ? ['Four days with no setup:', 'the correct trade is none. The routine', 'still happens. The core is left alone.']
+      : ['Four days with no setup: the correct trade is none.', 'The routine still happens. The core is left alone.'];
+    out.push(text(c, 0, ny, note, '--muted'));
+
+    mount(el, w, ny + note.length * 15 + 7, 'A made-up week. The morning routine happens all five days. A valid setup appears on Wednesday only, so ' +
+      'an order is placed only then. The core is not changed at all.', out);
+  }
+
+  // ---- Fig. 11.5: two months, measured by adherence ----
+
+  var MONTHS_ADHERENCE = [
+    { name: 'Month A: profitable', marks: [1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1] },
+    { name: 'Month B', marks: [1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] }
+  ];
+
+  function drawAdherence(el) {
+    var BAR = 0.9, c = context(el), token = c.token, w = c.width, ROW = 84, out = [];
+    var n = MONTHS_ADHERENCE[0].marks.length, cell = Math.min(24, (w - 2) / n), size = cell - 3;
+
+    MONTHS_ADHERENCE.forEach(function (mo, i) {
+      var top = i * ROW, a = adherence(mo.marks), ok = a >= BAR;
+      out.push(text(c, 0, top + 14, mo.name + ', ' + Math.round(a * 100) + '% by the rules', '--fg', 'font-weight="700"'));
+      mo.marks.forEach(function (v, k) {
+        var x = k * cell + 1, y = top + 24;
+        out.push(v
+          ? '<rect x="' + f1(x) + '" y="' + y + '" width="' + f1(size) + '" height="' + f1(size) + '" fill="' + token('--fg') + '"/>'
+          : '<rect x="' + f1(x + 0.75) + '" y="' + (y + 0.75) + '" width="' + f1(size - 1.5) + '" height="' + f1(size - 1.5) + '" fill="none" stroke="' +
+            token('--accent') + '" stroke-width="1.5"/><path d="M' + f1(x + 4) + ',' + (y + 4) + ' l' + f1(size - 8) + ',' + f1(size - 8) + ' m0,-' +
+            f1(size - 8) + ' l-' + f1(size - 8) + ',' + f1(size - 8) + '" stroke="' + token('--accent') + '" stroke-width="1.5"/>');
+      });
+      out.push(text(c, 0, top + 24 + size + 18, ok ? 'Meets the ' + BAR * 100 + '% bar: counts toward promotion' : 'Under ' + BAR * 100 +
+        '%: does not count, however it paid', ok ? '--fg' : '--accent', 'font-weight="700"'));
+    });
+
+    mount(el, w, 2 * ROW - 10, 'Two made-up months of 20 trades. Month A was profitable but only ' +
+      Math.round(adherence(MONTHS_ADHERENCE[0].marks) * 100) + '% of its trades followed the rules, so it does not count. Month B followed the rules on ' +
+      Math.round(adherence(MONTHS_ADHERENCE[1].marks) * 100) + '%, which meets the 90% bar.', out);
+  }
+
   // ---- Fig. 10.1: the planned exit and the exit with no plan ----
   // A sketch: one falling price on a 0 to 1 grid, with a stop written down before entry.
 
@@ -1917,11 +2082,11 @@
     out.push(text(c, side + 30, ROW + 4, ['Anything', 'left over:', 'a bonus'], '--fg', 'font-weight="700"'));
     // No chasing: the cross marks the urge the budget removes.
     var yx = ROW + 76;
-    out.push(text(c, side + 30, yx, ['No chasing', 'it back'], '--accent', 'font-weight="700"'));
+    out.push(text(c, side + 30, yx, ['No top-ups,', 'no chasing', 'it back'], '--accent', 'font-weight="700"'));
     out.push('<path d="M' + f1(side + 6) + ',' + (yx - 14) + ' l12,12 m0,-12 l-12,12" stroke="' + token('--accent') + '" stroke-width="2.5"/>');
 
     mount(el, w, 2 * ROW + 52, 'Diagram: a fixed monthly amount moves from the satellite account into a tuition budget that is counted ' +
-      'as spent, and from there into Level 4 trades. Anything left over returns as a bonus. Nothing chases the money back.', out);
+      'as spent, and from there into Level 4 trades. Anything left over returns as a bonus. There are no top-ups to chase the money back.', out);
   }
 
   // ---- Fig. 5.5: lost by neglect ----
@@ -2230,6 +2395,7 @@
     fees: drawFees, pie: drawPie, 'dividend-loop': drawDividendLoop, 'dividend-income': drawDividendIncome,
     drift: drawDrift, 'core-default': drawCoreDefault,
     hedge: drawHedge,
+    'calm-check': drawCalmCheck, traps: drawTraps, revenge: drawRevenge, restraint: drawRestraint, adherence: drawAdherence,
     'exit-plan': drawExitPlan, ratchet: drawRatchet, 'sized-trades': drawSizedTrades, 'tug-of-war': drawTugOfWar,
     streaks: drawStreaks,
     'holding-periods': drawHoldingPeriods, 'long-call': drawLongCall, 'tuition-months': drawTuitionMonths, 'paper-gate': drawPaperGate,
@@ -2252,7 +2418,7 @@
     module.exports = {
       grow: grow, breakeven: breakeven, futureValue: futureValue, drift: drift,
       mostUnderweight: mostUnderweight, dividendIncome: dividendIncome, pie: PIE,
-      hedgedValue: hedgedValue, streakLeft: streakLeft, sizedTrades: SIZED, longCallPL: longCallPL, tuitionPath: tuitionPath, coveredCallPL: coveredCallPL, shortPutPL: shortPutPL, wheel: WHEEL, rewardRisk: rewardRisk, positionSize: positionSize, runningAverage: runningAverage, traderA: TRADER_A, timeValueLeft: timeValueLeft, promoted: promoted,
+      hedgedValue: hedgedValue, sizedPath: sizedPath, adherence: adherence, streakLeft: streakLeft, sizedTrades: SIZED, longCallPL: longCallPL, tuitionPath: tuitionPath, coveredCallPL: coveredCallPL, shortPutPL: shortPutPL, wheel: WHEEL, rewardRisk: rewardRisk, positionSize: positionSize, runningAverage: runningAverage, traderA: TRADER_A, timeValueLeft: timeValueLeft, promoted: promoted,
       strategies: STRATEGIES, attentionShare: attentionShare, concentrationHit: concentrationHit,
       expectancy: expectancy, breakevenPayoff: breakevenPayoff, netAfterCosts: netAfterCosts, traderB: TRADER_B,
       roundTrip: roundTrip, lossPath: lossPath,

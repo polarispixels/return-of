@@ -111,6 +111,13 @@ if (typeof chart.grow !== 'function' || typeof chart.breakeven !== 'function' ||
     if (chart.lossPath(10000, 0.07, 30, 10, 0.5).toFixed(0) !== '38061') fail('chart.lossPath: Fig. 1.3 ends at $38,061 with the fall');
     if (chart.lossPath(10000, 0.07, 30, 99, 0.5).toFixed(0) !== '76123') fail('chart.lossPath: Fig. 1.3 ends at $76,123 without it');
   }
+  // Chapter 14 figures.
+  if (typeof chart.lossCarry !== 'function' || typeof chart.split6040 !== 'function') fail('js/chart.js: must export lossCarry and split6040');
+  else {
+    if (chart.lossCarry(10000, 3000).join() !== '3000,3000,3000,1000') fail('chart.lossCarry: $10,000 at $3,000 a year is 3,000 x3 then 1,000');
+    if (chart.lossCarry(2000, 3000).join() !== '2000') fail('chart.lossCarry: a loss under the limit is used in one year');
+    if (chart.split6040(1000).join() !== '600,400') fail('chart.split6040: $1,000 splits $600 long-term, $400 short-term');
+  }
   // Chapter 13 figures: the column counts come from the matrix data.
   if (typeof chart.builtForCounts !== 'function') fail('js/chart.js: must export builtForCounts');
   else {

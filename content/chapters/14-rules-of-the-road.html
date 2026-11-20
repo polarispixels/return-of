@@ -6,22 +6,85 @@
 <p>For years, a margin account that made four or more day trades in five business days was flagged as a pattern day trader and had to hold $25,000 in equity. FINRA replaced that. Its <a href="https://www.finra.org/rules-guidance/notices/26-10/">Regulatory Notice 26-10</a> says new intraday margin standards replace the day trading margin requirements in their entirety, including the day trade count and the $25,000 minimum. The effective date is June 4, 2026. Firms that need more time may phase the change in until October 20, 2027, so check what your own broker does today.</p>
 <p>The speed bump is gone, but the risk is not. The new standard asks whether your account has enough equity to cover your exposure during the day, and a customer who repeatedly fails to cover an intraday deficit can face a 90-day trading restriction. Your own daily trade cap now does the job the old rule did by accident.</p>
 
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 14.1</span>
+    <h3 class="figure-title">The day trading rule, replaced</h3>
+  </div>
+  <div class="chart" data-chart="pdt-timeline"></div>
+  <p class="figure-note">Dates from FINRA Regulatory Notice 26-10, linked above. The dashed tail is the phase-in: until October 20, 2027, your broker may still apply the old rule, so check.</p>
+</figure>
+
 <h2>Settlement and cash accounts</h2>
 <p>US stock trades settle one business day after the trade (T+1). The SEC shortened the standard cycle from T+2 to T+1, with a compliance date of May 28, 2024, as its <a href="https://www.sec.gov/newsroom/press-releases/2023-29">press release on the rule</a> states. FINRA&rsquo;s <a href="https://www.finra.org/investors/insights/cash-accounts-what-they-are-and-how-avoid-problems">guide to cash accounts</a> explains the practical effect: you must pay for a buy by the settlement date, and a firm can restrict an account that does not. Brokers commonly call it a good faith violation when you buy with cash from a sale that has not settled, then sell the new position before that earlier sale settles. In a cash account, trade with settled money.</p>
 
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 14.2</span>
+    <h3 class="figure-title">T+1, and the good faith violation</h3>
+  </div>
+  <div class="chart" data-chart="settlement"></div>
+  <p class="figure-note">A diagram of the paragraph above, using the T+1 cycle from the SEC and the cash account rules in FINRA&rsquo;s guide, both linked. &ldquo;Good faith violation&rdquo; is the brokers&rsquo; common name, and their handling varies.</p>
+</figure>
+
 <h2>Taxes</h2>
 <p>The IRS says a gain or loss on an asset held for more than one year is long-term. Held one year or less, it is short-term, and <a href="https://www.irs.gov/taxtopics/tc409">net short-term gains are taxed as ordinary income</a>.</p>
+
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 14.3</span>
+    <h3 class="figure-title">The one-year line</h3>
+  </div>
+  <div class="chart" data-chart="holding-line"></div>
+  <p class="figure-note">From IRS Topic 409, linked above. The line falls at one year: more than one year is long-term. Rates are not shown here; they depend on your situation.</p>
+</figure>
 <p>The same page says that if capital losses exceed gains, you can deduct up to $3,000 against other income ($1,500 if married filing separately), and you can carry the rest forward to later years.</p>
+
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 14.4</span>
+    <h3 class="figure-title">A net loss, used up over the years</h3>
+  </div>
+  <div class="chart" data-chart="loss-carry"></div>
+  <p class="figure-note">Arithmetic only, with a hypothetical $10,000 net capital loss, the $3,000 limit from IRS Topic 409, and no other capital gains or losses in later years. Real years with gains change the picture; a tax professional is the authority.</p>
+</figure>
 
 <h3>Wash sales</h3>
 <p><a href="https://www.irs.gov/publications/p550">IRS Publication 550</a> describes a wash sale: you sell stock at a loss and, within 30 days before or after the sale, buy substantially identical stock. It lists buying that stock for your IRA or Roth IRA as a trigger. <a href="https://www.irs.gov/pub/irs-drop/rr-08-05.pdf">Revenue Ruling 2008-5</a> adds that the loss is disallowed in that case and the IRA&rsquo;s basis does not go up.</p>
 <p>Your broker does not see your whole picture. The <a href="https://www.irs.gov/instructions/i1099b">Form 1099-B instructions</a> require a broker to report a disallowed loss when the sale and purchase are in the same account and have the same CUSIP number. Reporting across accounts is permitted but not required. A loss you cannot deduct is still your responsibility, even when no form shows it. Track wash sales in the journal.</p>
 
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 14.5</span>
+    <h3 class="figure-title">The wash sale window</h3>
+  </div>
+  <div class="chart" data-chart="wash-sale"></div>
+  <p class="figure-note">From IRS Publication 550, Revenue Ruling 2008-5, and the Form 1099-B instructions, all linked above. 30 days before, the day of the sale, and 30 days after make 61 days. Reporting across accounts is permitted but not required.</p>
+</figure>
+
 <h3>Index options</h3>
 <p>Publication 550 says nonequity options, a group that includes broad-based stock index options, fall under the 60/40 rule: 60% of the gain or loss is long-term and 40% is short-term, however long you held. SPX is a broad-based index option. An option on an ETF such as SPY is an option on shares of a fund, not on an index, so it is generally taxed under the ordinary rules. The IRS pages above do not name SPY, so confirm this with a tax professional.</p>
 
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 14.6</span>
+    <h3 class="figure-title">An index option&rsquo;s 60/40 split</h3>
+  </div>
+  <div class="chart" data-chart="sixty-forty"></div>
+  <p class="figure-note">Arithmetic only, on a hypothetical $1,000 gain, under the 60/40 rule in IRS Publication 550. The SPY line repeats the text&rsquo;s caution: confirm it with a tax professional.</p>
+</figure>
+
 <h2>Accredited investor status</h2>
 <p>Many private offerings are open only to accredited investors, who qualify by income, net worth or certain credentials. On September 30, 2026, the SEC <a href="https://www.sec.gov/newsroom/press-releases/2026-96-sec-proposes-amendments-expand-responsible-retailization-private-markets">opened public comment</a> on new ways to qualify, including passing an exam that FINRA would develop. It is a proposal, not a rule. Nothing changes for you until the SEC acts. Private offerings sit outside this method for now.</p>
+
+<figure class="figure" data-style="editorial">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 14.7</span>
+    <h3 class="figure-title">Where the accredited investor proposal stands</h3>
+  </div>
+  <div class="chart" data-chart="proposal"></div>
+  <p class="figure-note">From the SEC press release linked above. A proposal, not a rule: nothing changes until the SEC acts.</p>
+</figure>
 
 <blockquote class="pull"><p>Your own trade cap now does the job the old rule did by accident.</p></blockquote>
 

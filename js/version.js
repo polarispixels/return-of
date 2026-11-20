@@ -1,6 +1,6 @@
 // The one place the version lives. Pages stamp it into any [data-version] element.
 // tools/check.js fails the build if CHANGELOG.md has no entry for it.
-var RETURN_OF_VERSION = '0.19.0';
+var RETURN_OF_VERSION = '0.20.0';
 
 document.addEventListener('DOMContentLoaded', function () {
   var nodes = document.querySelectorAll('[data-version]');

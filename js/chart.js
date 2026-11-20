@@ -55,6 +55,17 @@
     ['Systematic', 'Depends on rules', 'High upfront, low ongoing', 'systematic']
   ].map(function (r, i) { return { num: i + 1, name: r[0], risk: r[1], effort: r[2], group: r[3] }; });
 
+  // A net capital loss deducted at up to `limit` a year, the rest carried forward. Assumes
+  // no other capital gains or losses in later years, as Fig. 14.4 says.
+  function lossCarry(loss, limit) {
+    var years = [];
+    while (loss > 0) { years.push(Math.min(loss, limit)); loss -= Math.min(loss, limit); }
+    return years;
+  }
+
+  // A gain or loss on a broad-based index option, split 60% long-term, 40% short-term.
+  function split6040(amount) { return [amount * 0.6, amount * 0.4]; }
+
   // For each strategy (column), how many platforms score 3, "built for it". `rows` is one
   // array of scores per platform.
   function builtForCounts(rows) {
@@ -1111,6 +1122,203 @@
 
     mount(el, w, 294, 'Flowchart: every dollar starts in the core. A small satellite tests a method. The journal measures ' +
       'expectancy and adherence. If it shows an edge, the satellite may grow within the rules. If not, the money goes back to the core.', out);
+  }
+
+  // ---- Fig. 14.1: the day trading rule, replaced ----
+  // Months from January 2026. Dates come from FINRA Regulatory Notice 26-10, as the text cites.
+
+  function drawPdtTimeline(el) {
+    var EFFECTIVE = 5 + 3 / 30, PHASE_END = 21 + 19 / 31, X_MIN = -8, X_MAX = 26;
+    var c = context(el), token = c.token, w = c.width, narrow = w < 480, out = [];
+    var x = function (mo) { return 4 + ((mo - X_MIN) / (X_MAX - X_MIN)) * (w - 8); };
+    var ROW = 40, top = 30;
+
+    out.push('<rect x="' + f1(x(EFFECTIVE)) + '" y="' + (top - 8) + '" width="' + f1(x(PHASE_END) - x(EFFECTIVE)) + '" height="' + (3 * ROW + 6) +
+      '" fill="' + token('--muted') + '" fill-opacity="0.12"/>');
+    out.push(text(c, (x(EFFECTIVE) + x(PHASE_END)) / 2, 14, narrow ? 'Phase-in' : 'Firms may phase the change in', '--muted', 'text-anchor="middle"'));
+    var bars = [
+      { name: narrow ? 'Old day trader rule' : 'Old rule: 4+ day trades in 5 days, $25,000', from: X_MIN, to: EFFECTIVE, tail: PHASE_END, token: '--muted' },
+      { name: narrow ? 'New margin standards' : 'New intraday margin standards', from: EFFECTIVE, to: X_MAX, token: '--accent-2', open: true },
+      { name: 'Your own daily trade cap', from: X_MIN, to: X_MAX, token: '--fg', open: true }
+    ];
+    bars.forEach(function (b, i) {
+      var y = top + i * ROW;
+      out.push(text(c, Math.max(4, x(b.from)) + (i === 1 ? 4 : 0), y + 4, b.name, '--fg', 'font-weight="700"'));
+      out.push('<rect x="' + f1(x(b.from)) + '" y="' + (y + 10) + '" width="' + f1(x(b.to) - x(b.from)) + '" height="10" fill="' + token(b.token) + '"/>');
+      if (b.tail) out.push('<line x1="' + f1(x(b.to)) + '" x2="' + f1(x(b.tail)) + '" y1="' + (y + 15) + '" y2="' + (y + 15) + '" stroke="' + token(b.token) +
+        '" stroke-width="3" stroke-dasharray="4 3"/>');
+      if (b.open) out.push(arrowhead(x(X_MAX) + 3, y + 15, 0, token(b.token)));
+    });
+    var axisY = top + 3 * ROW + 8;
+    out.push('<line x1="4" x2="' + f1(w - 4) + '" y1="' + axisY + '" y2="' + axisY + '" stroke="' + token('--fg') + '" stroke-width="1.5"/>');
+    [[EFFECTIVE, 'June 4, 2026'], [PHASE_END, 'Oct. 20, 2027']].forEach(function (d, k) {
+      out.push('<line x1="' + f1(x(d[0])) + '" x2="' + f1(x(d[0])) + '" y1="' + (top - 8) + '" y2="' + (axisY + 5) + '" stroke="' + token('--fg') + '" stroke-width="1.5"/>');
+      out.push(text(c, x(d[0]), axisY + 19, d[1], '--fg', 'text-anchor="' + (k === 0 || narrow ? 'end' : 'start') + '" font-weight="700"'));
+    });
+    out.push(text(c, x(EFFECTIVE), axisY + 34, 'Effective', '--muted', 'text-anchor="end"'));
+    out.push(text(c, x(PHASE_END), axisY + 34, 'Phase-in ends', '--muted', 'text-anchor="' + (narrow ? 'end' : 'start') + '"'));
+
+    mount(el, w, axisY + 42, 'Timeline. The old pattern day trader rule (four or more day trades in five business days and a $25,000 minimum) ' +
+      'is replaced by new intraday margin standards effective June 4, 2026; firms may phase the change in until October 20, 2027. ' +
+      'Your own daily trade cap runs throughout.', out);
+  }
+
+  // ---- Fig. 14.2: T+1, and the good faith violation ----
+
+  function drawSettlement(el) {
+    var c = context(el), token = c.token, w = c.width, narrow = w < 480, out = [];
+    var left = narrow ? 0 : 110, colW = (w - left) / 2, top = 36, LANE = narrow ? 56 : 46;
+    var dx = function (d) { return left + colW * (d + 0.5); };
+
+    ['Day 1 (trade date)', 'Day 2 (T+1)'].forEach(function (d, i) {
+      out.push(text(c, dx(i), 14, narrow ? (i ? 'Day 2: T+1' : 'Day 1') : d, '--fg', 'text-anchor="middle" font-weight="700"'));
+      out.push('<line x1="' + f1(left + colW * i) + '" x2="' + f1(left + colW * i) + '" y1="20" y2="' + (top + 3 * LANE) + '" stroke="' + token('--muted') + '" stroke-width="0.5"/>');
+    });
+    var lanes = [
+      { name: 'Sell A', narrowName: 'Sell A', a: 0, b: 1, label: 'Cash from A settles', tok: '--accent-2' },
+      { name: 'Buy B', narrowName: 'Buy B', a: 0, label: 'With A’s unsettled cash: allowed', tok: '--fg' },
+      { name: 'Sell B', narrowName: 'Sell B', a: 0, label: 'Before A settles: a good faith violation', tok: '--accent', alt: { a: 1, label: 'After A settles: fine' } }
+    ];
+    lanes.forEach(function (l, i) {
+      var y = top + i * LANE;
+      if (!narrow) out.push(text(c, 0, y + 18, l.name, '--fg', 'font-weight="700"'));
+      out.push('<circle cx="' + f1(dx(l.a)) + '" cy="' + (y + 14) + '" r="6" fill="' + token(l.tok) + '"/>');
+      if (l.b !== undefined) {
+        out.push(arrow(dx(l.a) + 8, y + 14, dx(l.b) - 8, y + 14, token(l.tok)));
+        out.push('<circle cx="' + f1(dx(l.b)) + '" cy="' + (y + 14) + '" r="6" fill="' + token(l.tok) + '"/>');
+      }
+      out.push(text(c, narrow ? 0 : dx(l.a) + 12, y + (narrow ? 38 : 34), (narrow ? l.narrowName + ': ' : '') + l.label, l.tok === '--accent' ? '--accent' : '--fg',
+        l.tok === '--accent' ? 'font-weight="700"' : ''));
+      if (l.alt) {
+        out.push('<circle cx="' + f1(dx(l.alt.a)) + '" cy="' + (y + 14) + '" r="6" fill="none" stroke="' + token('--fg') + '" stroke-width="2"/>');
+        out.push(narrow ? text(c, 0, y + 53, 'Sell B on day 2, after A settles: fine', '--fg') : text(c, dx(l.alt.a) + 12, y + 18, l.alt.label, '--fg'));
+      }
+    });
+
+    mount(el, w, top + 3 * LANE + (narrow ? 14 : 6), 'Two days of T+1 settlement. Sell stock A on day 1; its cash settles on day 2. Buying B on day 1 with ' +
+      'that unsettled cash is allowed. Selling B on day 1, before A settles, is what brokers call a good faith violation; selling it on day 2 is fine.', out);
+  }
+
+  // ---- Fig. 14.3: the one-year line ----
+
+  function drawHoldingLine(el) {
+    var c = context(el), token = c.token, w = c.width, narrow = w < 480, out = [];
+    var x = function (mo) { return 4 + (mo / 24) * (w - 8); }, top = 20, H = 64;
+
+    out.push('<rect x="' + f1(x(0)) + '" y="' + top + '" width="' + f1(x(12) - x(0)) + '" height="' + H + '" fill="' + token('--accent-2-soft') + '"/>');
+    out.push('<rect x="' + f1(x(12)) + '" y="' + top + '" width="' + f1(x(24) - x(12)) + '" height="' + H + '" fill="' + token('--accent-2') + '"/>');
+    out.push(text(c, x(0) + 10, top + 22, narrow ? 'Short-term' : 'Held one year or less: short-term', '--fg', 'font-weight="700"'));
+    out.push(text(c, x(0) + 10, top + 40, narrow ? ['Net gains taxed', 'as ordinary income'] : 'Net short-term gains taxed as ordinary income', '--fg'));
+    out.push(text(c, x(12) + 10, top + 22, narrow ? 'Long-term' : 'Held more than one year: long-term', '--bg', 'font-weight="700"'));
+    [[0, 'Purchase'], [12, 'One year'], [24, 'Two years']].forEach(function (t, k) {
+      out.push(text(c, x(t[0]), top + H + 18, t[1], '--muted', 'text-anchor="' + (k === 0 ? 'start' : k === 2 ? 'end' : 'middle') + '"'));
+    });
+    out.push('<line x1="' + f1(x(12)) + '" x2="' + f1(x(12)) + '" y1="' + (top - 6) + '" y2="' + (top + H + 6) + '" stroke="' + token('--fg') + '" stroke-width="2"/>');
+
+    mount(el, w, top + H + 26, 'Timeline from purchase. Held one year or less, a gain or loss is short-term, and net short-term gains are taxed ' +
+      'as ordinary income. Held more than one year, it is long-term.', out);
+  }
+
+  // ---- Fig. 14.4: a net loss, used up over the years ----
+
+  function drawLossCarry(el) {
+    var LOSS = 10000, LIMIT = 3000, years = lossCarry(LOSS, LIMIT);
+    var c = context(el), token = c.token, w = c.width;
+    var h = Math.round(clamp(w * 0.45, 230, 300));
+    var m = { top: 30, right: 10, bottom: 30, left: 50 };
+    var y = function (v) { return h - m.bottom - (v / LOSS) * (h - m.top - m.bottom); };
+    var col = (w - m.left - m.right) / years.length, bar = Math.min(60, col * 0.5), left = LOSS, out = [];
+
+    hGrid(c, out, m, w, y, [0, 2500, 5000, 7500, 10000], function (t) { return '$' + (t / 1000) + 'k'; });
+    var lx = w < 420 ? 0 : m.left;
+    out.push('<rect x="' + lx + '" y="6" width="10" height="10" fill="' + token('--accent-2') + '"/>');
+    out.push(text(c, lx + 15, 15, 'Deducted that year', '--fg'));
+    out.push('<rect x="' + (lx + 140) + '" y="6" width="10" height="10" fill="' + token('--accent-2-soft') + '"/>');
+    out.push(text(c, lx + 155, 15, 'Carried forward', '--fg'));
+    years.forEach(function (d, i) {
+      var cx = m.left + col * (i + 0.5), carry = left - d;
+      out.push('<rect x="' + f1(cx - bar / 2) + '" y="' + f1(y(d)) + '" width="' + f1(bar) + '" height="' + f1(y(0) - y(d)) + '" fill="' + token('--accent-2') + '"/>');
+      if (carry > 0) out.push('<rect x="' + f1(cx - bar / 2) + '" y="' + f1(y(d + carry)) + '" width="' + f1(bar) + '" height="' + f1(y(d) - y(d + carry) - 2) +
+        '" fill="' + token('--accent-2-soft') + '"/>');
+      out.push(text(c, cx, y(d) + 16, money(d), '--bg', 'text-anchor="middle" font-weight="700"'));
+      out.push(text(c, cx, h - 8, 'Year ' + (i + 1), '--muted', 'text-anchor="middle"'));
+      left = carry;
+    });
+
+    mount(el, w, h, 'Stacked bars: a hypothetical $10,000 net capital loss, deducted at up to $3,000 a year: $3,000, $3,000, $3,000, ' +
+      'then $1,000, with the rest carried forward each year.', out);
+  }
+
+  // ---- Fig. 14.5: the wash sale window ----
+
+  function drawWashSale(el) {
+    var BUYS = [
+      { day: 12, label: ['Same account, same CUSIP:', 'a wash sale the broker reports'], tok: '--accent' },
+      { day: -10, label: ['In your IRA: still a wash sale,', 'and no broker has to report it'], tok: '--accent' },
+      { day: 38, label: ['Outside the window:', 'not a wash sale'], tok: '--fg' }
+    ];
+    var c = context(el), token = c.token, w = c.width, out = [];
+    var narrow = w < 480, x = function (d) { return 6 + ((d + 45) / 90) * (w - 12); }, axisY = 40, ROW = narrow ? 58 : 46;
+
+    out.push('<rect x="' + f1(x(-30)) + '" y="22" width="' + f1(x(30) - x(-30)) + '" height="' + (axisY - 22 + BUYS.length * ROW + 6) + '" fill="' +
+      token('--accent') + '" fill-opacity="0.1"/>');
+    out.push(text(c, x(0), 14, narrow ? '61-day window' : '61-day window: 30 days before, 30 after', '--accent', 'text-anchor="middle" font-weight="700"'));
+    out.push('<line x1="6" x2="' + f1(w - 6) + '" y1="' + axisY + '" y2="' + axisY + '" stroke="' + token('--fg') + '" stroke-width="1.5"/>');
+    [-30, 0, 30].forEach(function (d) {
+      out.push('<line x1="' + f1(x(d)) + '" x2="' + f1(x(d)) + '" y1="' + (axisY - 4) + '" y2="' + (axisY + 4) + '" stroke="' + token('--fg') + '" stroke-width="1.5"/>');
+    });
+    out.push('<rect x="' + f1(x(0) - 6) + '" y="' + (axisY - 6) + '" width="12" height="12" fill="' + token('--fg') + '"/>');
+    BUYS.forEach(function (b, i) {
+      var y = axisY + 18 + i * ROW, right = x(b.day) > w * 0.55;
+      out.push('<circle cx="' + f1(x(b.day)) + '" cy="' + y + '" r="6" fill="' + token(b.tok) + '"/>');
+      out.push(narrow ? text(c, 6, y + 20, b.label, '--fg') : text(c, x(b.day) + (right ? -12 : 12), y + 4, b.label, '--fg', right ? 'text-anchor="end"' : ''));
+    });
+    var by = axisY + 18 + BUYS.length * ROW + 10;
+    out.push(text(c, x(0), by, 'Sale at a loss, day 0', '--fg', 'text-anchor="middle" font-weight="700"'));
+
+    mount(el, w, by + 8, 'A timeline around a sale at a loss on day 0, with the 61-day wash sale window from 30 days before to 30 after. ' +
+      'A buy of the same stock in the same account on day 12 is a wash sale the broker reports. A buy in an IRA 10 days before is still a ' +
+      'wash sale, and no broker has to report it. A buy on day 38 is outside the window.', out);
+  }
+
+  // ---- Fig. 14.6: an index option's 60/40 split ----
+
+  function drawSixtyForty(el) {
+    var GAIN = 1000, parts = split6040(GAIN), c = context(el), token = c.token, w = c.width, out = [];
+    var bw = w, top = 22, narrow = w < 420;
+
+    out.push(text(c, 0, 14, narrow ? 'A ' + money(GAIN) + ' gain on SPX, an index option' : 'A ' + money(GAIN) + ' gain on a broad-based index option (SPX)', '--fg', 'font-weight="700"'));
+    out.push('<rect x="0" y="' + top + '" width="' + f1(bw * 0.6 - 1) + '" height="34" fill="' + token('--accent-2') + '"/>');
+    out.push('<rect x="' + f1(bw * 0.6 + 1) + '" y="' + top + '" width="' + f1(bw * 0.4 - 1) + '" height="34" fill="' + token('--accent-2-soft') + '"/>');
+    out.push(text(c, 10, top + 22, (narrow ? '60% long: ' : '60% long-term: ') + money(parts[0]), '--bg', 'font-weight="700"'));
+    out.push(text(c, bw * 0.6 + 10, top + 22, (narrow ? '40%: ' : '40% short: ') + money(parts[1]), '--fg', 'font-weight="700"'));
+    out.push(text(c, 0, top + 52, 'However long it was held.', '--muted'));
+    var y2 = top + 84;
+    out.push(text(c, 0, y2 - 8, narrow ? 'The same gain on a SPY option' : 'The same gain on an option on an ETF (SPY)', '--fg', 'font-weight="700"'));
+    out.push('<rect x="1" y="' + y2 + '" width="' + f1(bw - 2) + '" height="34" fill="none" stroke="' + token('--accent-2') + '" stroke-width="2" stroke-dasharray="5 4"/>');
+    out.push(text(c, 10, y2 + 22, narrow ? 'Generally: by holding period' : 'Generally the ordinary rules: by holding period', '--fg'));
+
+    mount(el, w, y2 + 42, 'A $1,000 gain on a broad-based index option such as SPX splits 60% long-term ($600) and 40% short-term ($400), ' +
+      'however long it was held. An option on an ETF such as SPY generally follows the ordinary holding-period rules.', out);
+  }
+
+  // ---- Fig. 14.7: where the accredited investor proposal stands ----
+
+  function drawProposal(el) {
+    var STEPS = [['Proposal opened', 'Sept. 30, 2026'], ['Public comment'], ['The SEC acts,', 'or does not'], ['A rule, only', 'if adopted']];
+    var c = context(el), token = c.token, w = c.width, wide = w >= 560, out = [];
+    var gap = 22, bw = wide ? (w - 3 * gap) / 4 : w, y = 0;
+
+    STEPS.forEach(function (s, i) {
+      var x = wide ? i * (bw + gap) : 0, yy = wide ? 20 : 20 + i * 70;
+      out.push(box(c, x, yy, bw, s, i === 0 ? { fill: '--fg' } : i === 3 ? { stroke: '--muted' } : {}));
+      if (i < 3) out.push(wide ? arrow(x + bw + 2, yy + 25, x + bw + gap - 2, yy + 25, token('--fg')) : arrow(bw / 2, yy + 52, bw / 2, yy + 68, token('--fg')));
+      y = yy;
+    });
+    out.push(text(c, wide ? bw / 2 : bw / 2, 12, 'You are here', '--accent', 'text-anchor="middle" font-weight="700"'));
+
+    mount(el, w, y + 58, 'Four steps: the SEC opened a proposal for comment on September 30, 2026 (you are here), public comment, ' +
+      'the SEC acts or does not, and a rule only if adopted. Nothing changes until the SEC acts.', out);
   }
 
   // ---- Fig. 13.1: strategy first, tool second ----
@@ -2655,6 +2863,8 @@
     fees: drawFees, pie: drawPie, 'dividend-loop': drawDividendLoop, 'dividend-income': drawDividendIncome,
     drift: drawDrift, 'core-default': drawCoreDefault,
     hedge: drawHedge,
+    'pdt-timeline': drawPdtTimeline, settlement: drawSettlement, 'holding-line': drawHoldingLine, 'loss-carry': drawLossCarry,
+    'wash-sale': drawWashSale, 'sixty-forty': drawSixtyForty, proposal: drawProposal,
     'tool-order': drawToolOrder, dimensions: drawDimensions, portable: drawPortable, 'fit-columns': drawFitColumns,
     'day-ring': drawDayRing, checklist: drawChecklist, 'journal-entry': drawJournalEntry, 'journal-math': drawJournalMath,
     watched: drawWatched,
@@ -2681,7 +2891,7 @@
     module.exports = {
       grow: grow, breakeven: breakeven, futureValue: futureValue, drift: drift,
       mostUnderweight: mostUnderweight, dividendIncome: dividendIncome, pie: PIE,
-      hedgedValue: hedgedValue, builtForCounts: builtForCounts, rMultiple: rMultiple, journalRows: JOURNAL_ROWS, sizedPath: sizedPath, adherence: adherence, streakLeft: streakLeft, sizedTrades: SIZED, longCallPL: longCallPL, tuitionPath: tuitionPath, coveredCallPL: coveredCallPL, shortPutPL: shortPutPL, wheel: WHEEL, rewardRisk: rewardRisk, positionSize: positionSize, runningAverage: runningAverage, traderA: TRADER_A, timeValueLeft: timeValueLeft, promoted: promoted,
+      hedgedValue: hedgedValue, lossCarry: lossCarry, split6040: split6040, builtForCounts: builtForCounts, rMultiple: rMultiple, journalRows: JOURNAL_ROWS, sizedPath: sizedPath, adherence: adherence, streakLeft: streakLeft, sizedTrades: SIZED, longCallPL: longCallPL, tuitionPath: tuitionPath, coveredCallPL: coveredCallPL, shortPutPL: shortPutPL, wheel: WHEEL, rewardRisk: rewardRisk, positionSize: positionSize, runningAverage: runningAverage, traderA: TRADER_A, timeValueLeft: timeValueLeft, promoted: promoted,
       strategies: STRATEGIES, attentionShare: attentionShare, concentrationHit: concentrationHit,
       expectancy: expectancy, breakevenPayoff: breakevenPayoff, netAfterCosts: netAfterCosts, traderB: TRADER_B,
       roundTrip: roundTrip, lossPath: lossPath,

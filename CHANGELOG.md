@@ -4,6 +4,15 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-11-20
+
+Chapter 14 gets a figure for every rule.
+
+### Added
+
+- Chapter 14, Rules of the Road: seven figures, each drawn only from the text and its linked primary sources. Fig. 14.1, the day trading rule replaced, with the June 4, 2026 effective date and the phase-in to October 20, 2027. Fig. 14.2, T+1 settlement and the good faith violation. Fig. 14.3, the one-year line between short-term and long-term. Fig. 14.4, a hypothetical $10,000 net loss used up at $3,000 a year. Fig. 14.5, the 61-day wash sale window, including an IRA purchase no broker has to report. Fig. 14.6, an index option's 60/40 split against an ETF option. Fig. 14.7, where the accredited investor proposal stands.
+- Deploy checks for the loss carryforward and the 60/40 split.
+
 ## [0.19.0] - 2026-11-20
 
 Chapter 13 gets a figure for every section.

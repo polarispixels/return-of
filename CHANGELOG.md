@@ -4,6 +4,21 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-20
+
+The Protective Hedge gets a home, and Chapter 5 gets a figure for every section.
+
+### Added
+
+- Chapter 6: a new section, "Insuring the core: the Protective Hedge" (Strategy 8), with Fig. 6.5, a put putting a floor under the core. It links the SEC and FINRA alert on leveraged and inverse ETFs, and adds two open questions.
+- Chapter 5, The Ladder: five figures. Fig. 5.1, the Ladder with strategy chips, timing, and gates. Fig. 5.2, the promotion rule as a grid. Fig. 5.3, time decay working for the seller. Fig. 5.4, tuition counted as already spent. Fig. 5.5, ten trading days without the routine.
+- Deploy checks for the hedge floor, time value left, and the promotion rule.
+
+### Changed
+
+- Chapter 6: the core-and-satellite diagram is now Fig. 6.6.
+- Chapter 4: the groups figure and the text now point the Protective Hedge to Chapter 6. The contents list says Chapter 6 covers "Index funds, pies, dividends, and a hedge."
+
 ## [0.9.0] - 2026-11-20
 
 Chapter 4 gets a figure for every section, and the menu gets a map.

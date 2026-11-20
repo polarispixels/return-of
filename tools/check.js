@@ -109,6 +109,24 @@ if (typeof chart.grow !== 'function' || typeof chart.breakeven !== 'function' ||
     if (chart.lossPath(10000, 0.07, 30, 10, 0.5).toFixed(0) !== '38061') fail('chart.lossPath: Fig. 1.3 ends at $38,061 with the fall');
     if (chart.lossPath(10000, 0.07, 30, 99, 0.5).toFixed(0) !== '76123') fail('chart.lossPath: Fig. 1.3 ends at $76,123 without it');
   }
+  // Chapter 5 figures.
+  if (typeof chart.timeValueLeft !== 'function') fail('js/chart.js: must export timeValueLeft');
+  else {
+    if (!near(chart.timeValueLeft(15, 60), 0.5)) fail('chart.timeValueLeft: a quarter of the time left keeps half the time value');
+    if (!near(chart.timeValueLeft(60, 60), 1) || !near(chart.timeValueLeft(0, 60), 0)) fail('chart.timeValueLeft: all at the start, none at expiry');
+  }
+  if (typeof chart.promoted !== 'function') fail('js/chart.js: must export promoted');
+  else {
+    if (!chart.promoted(5, 0.9) || chart.promoted(5, 0.89) || chart.promoted(0, 1) || chart.promoted(-1, 0.95)) {
+      fail('chart.promoted: needs positive expectancy and at least 90% adherence');
+    }
+  }
+  // Chapter 6, Fig. 6.5: the hedge floor.
+  if (typeof chart.hedgedValue !== 'function') fail('js/chart.js: must export hedgedValue');
+  else {
+    if (!near(chart.hedgedValue(-0.4, 0.9, 0.02), 0.88)) fail('chart.hedgedValue: a 40% fall with a 90% floor and 2% premium leaves 0.88');
+    if (!near(chart.hedgedValue(0.2, 0.9, 0.02), 1.18)) fail('chart.hedgedValue: a 20% rise less the 2% premium is 1.18');
+  }
   // Chapter 4 figures: the strategy data drawn in Fig. 4.2 must match the table in the chapter.
   if (!Array.isArray(chart.strategies) || chart.strategies.length !== 13) fail('chart.strategies: must list all 13 strategies');
   else {

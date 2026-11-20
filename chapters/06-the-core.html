@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>6. The Core: Return Of</title>
-  <meta name="description" content="Index funds, pies, dividends.">
+  <meta name="description" content="Index funds, pies, dividends, and a hedge.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
@@ -24,7 +24,7 @@
         <header class="chapter-head">
           <p class="chapter-kicker label">Chapter 6 <span class="badge">Preliminary draft</span></p>
           <h1 class="chapter-title">The Core</h1>
-          <p class="standfirst">Index funds, pies, dividends.</p>
+          <p class="standfirst">Index funds, pies, dividends, and a hedge.</p>
         </header>
 
         <div class="prose chapter-body">
@@ -87,6 +87,22 @@
   <p class="figure-note">The example pie from Fig. 6.2, shown as distance from target in percentage points. With a 5-point band, U.S. stocks (+7) and international (&minus;6) are outside it, so one trade fixes both: trim U.S., add international. Bonds (&minus;1) are inside the band and stay put. The band width is an example; set your own.</p>
 </figure>
 
+<h2>Insuring the core: the Protective Hedge</h2>
+<p>Strategy 8, the Protective Hedge, is insurance for the core. It does not try to make money. It tries to cap how much the core can lose in a bad stretch, so that one deep fall does not reset the clock on years of compounding (Chapter 1).</p>
+<p>There are two common tools. A put option gives you the right to sell at a set price, the strike, until a set date. If the market falls below the strike, the put gains value and offsets the fall past that point. An inverse fund aims to move opposite to an index. Most aim for that over a single day and reset daily, so over weeks or months their results can drift far from what you expect. The SEC and FINRA warn buy-and-hold investors about exactly this in their <a href="https://www.sec.gov/files/investor/pubs/leveragedetfs-alert.htm">alert on leveraged and inverse ETFs</a>.</p>
+
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 6.5</span>
+    <h3 class="figure-title">A put puts a floor under the core</h3>
+  </div>
+  <div class="chart" data-chart="hedge"></div>
+  <p class="figure-note">Arithmetic only, with round, hypothetical numbers: a core worth $100, a put that covers all of it with a strike 10% below today, and a premium of $2. Hedged value = the greater of the core or $90, less the $2. Real premiums change with the market and the dates you choose.</p>
+</figure>
+
+<p>Insurance has a price. A put costs a premium. In a calm or rising market it expires worth little or nothing, and the premium is simply spent. That steady cost is why the hedge is a choice, not a default. Its risk rating is &ldquo;Lowers risk&rdquo; and its effort is low to medium: you choose a strike, a date, and a size, then renew it or let it lapse.</p>
+<p>Write the trigger down, the same way you write down a rebalancing rule. A hedge bought in a panic is usually bought at the worst price. A hedge set by rule, such as a fixed share of the core&rsquo;s value or a set point in the calendar, is one less decision under pressure.</p>
+
 <blockquote class="pull"><p>The core does most of the compounding and needs almost no attention.</p></blockquote>
 
 <h2>Why the core is the default</h2>
@@ -94,7 +110,7 @@
 
 <figure class="figure" data-style="editorial">
   <div class="figure-head">
-    <span class="figure-number">Fig. 6.5</span>
+    <span class="figure-number">Fig. 6.6</span>
     <h3 class="figure-title">The core is where the money rests</h3>
   </div>
   <div class="chart" data-chart="core-default"></div>
@@ -108,6 +124,8 @@
   <li>What is the rebalancing rule: a calendar date or a drift threshold?</li>
   <li>What is the maximum expense ratio you will accept for a core fund?</li>
   <li>What monthly deposit amount do you commit to, and what would make you change it?</li>
+  <li>Will you hedge the core at all, and with what: puts, inverse funds, or neither?</li>
+  <li>How much premium a year will you pay for insurance before it costs more than it protects?</li>
 </ul>
 
 <h2>Further reading</h2>

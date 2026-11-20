@@ -35,6 +35,15 @@
 
 <figure class="figure" data-style="swiss">
   <div class="figure-head">
+    <span class="figure-number">Fig. 5.1</span>
+    <h3 class="figure-title">The Ladder</h3>
+  </div>
+  <div class="chart" data-chart="ladder"></div>
+  <p class="figure-note">The rungs from the table below, Level 1 at the bottom. Chips are strategy numbers from the menu in Chapter 4. Each gate must be passed before the rung above it.</p>
+</figure>
+
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
     <span class="figure-number">Table 5.1</span>
     <h3 class="figure-title">The Ladder</h3>
   </div>
@@ -56,19 +65,55 @@
 <h2>Earned with proof, not feelings</h2>
 <p><strong>Promotion rule:</strong> positive expectancy and at least 90% adherence to your own rules, shown in the journal.</p>
 <p>Both halves matter. Positive expectancy means that, across your recorded trades, the average trade makes money. Adherence means you followed your own written rules at least 90% of the time. A good result from sloppy trading proves nothing, because you cannot repeat it on purpose. Following the rules and still losing means the rules need work.</p>
+
+<figure class="figure" data-style="editorial">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 5.2</span>
+    <h3 class="figure-title">Promotion needs both halves</h3>
+  </div>
+  <div class="chart" data-chart="promotion"></div>
+  <p class="figure-note">The promotion rule as a grid. Only the top-left corner moves you up a level. The bottom-right reading, fix the habits first, follows from the two above it.</p>
+</figure>
 <p>Feeling ready is not evidence. Confidence rises after a few wins and falls after a few losses, and neither tells you whether the method works. The journal is the only judge you cannot talk into a better mood.</p>
 
 <h2>Why options start from the seller's side</h2>
 <p>Level 3 comes before Level 4 on purpose. When you sell a covered call or a cash-secured put, time decay works for you, you hold the shares or the cash to back the trade, and your worst case is known in advance. You learn how volatility and assignment behave from the safer seat. When you later buy options at Level 4, you already know what the seller on the other side is thinking.</p>
 
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 5.3</span>
+    <h3 class="figure-title">Time works for the seller</h3>
+  </div>
+  <div class="chart" data-chart="time-decay"></div>
+  <p class="figure-note">Arithmetic under a standard approximation (Brenner and Subrahmanyam, 1988): the time value of an at-the-money option scales with the square root of time left, all else equal. Real prices also move with the stock and with volatility.</p>
+</figure>
+
 <h2>Tuition, already spent</h2>
 <p>Level 4 holds the highest-risk strategies on the menu. They get a fixed monthly tuition budget, treated as already spent. That phrase does two jobs. It caps the loss before the trade starts. It also removes the urge to chase the money back, because the money is gone the moment it enters the budget. Anything that works out is a bonus. The paper-trade gate, about 50 trades with positive expectancy, keeps you from paying tuition before you have studied.</p>
+
+<figure class="figure" data-style="editorial">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 5.4</span>
+    <h3 class="figure-title">Tuition, already spent</h3>
+  </div>
+  <div class="chart" data-chart="tuition"></div>
+  <p class="figure-note">A diagram of the rule. How large the budget is, and what happens when it runs out mid-month, are open questions below.</p>
+</figure>
 
 <blockquote class="pull"><p>Active management depends on activity.</p></blockquote>
 
 <h2>Lost by neglect</h2>
 <p><strong>Demotion rule:</strong> 10 trading days without the morning routine sends the active slice back to the core.</p>
 <p>Active strategies need attention: stops move, options expire, setups fail. A position nobody watches is no longer managed. The rule gives lapsed attention a default. If you miss the routine for 10 trading days, the active slice goes back into the Index Core, where it needs no daily attention. Chapter 12 covers the routine and the journal in detail.</p>
+
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 5.5</span>
+    <h3 class="figure-title">Lost by neglect</h3>
+  </div>
+  <div class="chart" data-chart="neglect"></div>
+  <p class="figure-note">A made-up stretch of trading days. The demotion rule counts trading days without the morning routine; at 10, the active slice goes back to the Index Core.</p>
+</figure>
 
 <h2>Open questions</h2>
 <ul>
@@ -97,5 +142,6 @@
   </div>
 
   <script src="../js/version.js"></script>
+  <script src="../js/chart.js"></script>
 </body>
 </html>

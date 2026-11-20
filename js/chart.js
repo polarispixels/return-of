@@ -55,6 +55,17 @@
     ['Systematic', 'Depends on rules', 'High upfront, low ongoing', 'systematic']
   ].map(function (r, i) { return { num: i + 1, name: r[0], risk: r[1], effort: r[2], group: r[3] }; });
 
+  // Share of an at-the-money option's time value left with `daysLeft` of `daysTotal`, under
+  // the standard approximation that time value scales with the square root of time left.
+  function timeValueLeft(daysLeft, daysTotal) { return Math.sqrt(daysLeft / daysTotal); }
+
+  // The Ladder's promotion rule: positive expectancy and at least 90% adherence.
+  function promoted(expectancyPerTrade, adherence) { return expectancyPerTrade > 0 && adherence >= 0.9; }
+
+  // Value of a core worth 1 after a market `move`, hedged by a put covering all of it:
+  // never below `floor`, always less the `premium`.
+  function hedgedValue(move, floor, premium) { return Math.max(1 + move, floor) - premium; }
+
   // Share of a fixed attention budget each strategy gets when split evenly across `n`.
   function attentionShare(n) { return 1 / n; }
 
@@ -1029,6 +1040,207 @@
       'expectancy and adherence. If it shows an edge, the satellite may grow within the rules. If not, the money goes back to the core.', out);
   }
 
+  // ---- Fig. 5.1: the Ladder ----
+  // Rungs from Level 1 at the bottom to Level 4 at the top, each with its strategy chips,
+  // timing, and gate. Systematic runs alongside all four.
+
+  function drawLadder(el) {
+    var LEVELS = [
+      { n: 4, name: 'Long Options and 0DTE', chips: [10, 12], when: '6+ months', gate: 'about 50 paper trades, positive expectancy', gateShort: 'about 50 paper trades' },
+      { n: 3, name: 'Covered Calls and the Wheel', chips: [6, 7], when: 'Months 3 to 6', gate: 'the promotion rule' },
+      { n: 2, name: 'Swing Trading and Growth Momentum', short: 'Swing Trading, Growth Momentum', chips: [9, 5], when: 'Months 1 to 3',
+        gate: 'the promotion rule' },
+      { n: 1, name: 'Foundation', chips: [1], when: 'Weeks 1 to 4', gate: 'journal and routine running first', gateShort: 'journal and routine first' }
+    ];
+    var c = context(el), token = c.token, w = c.width, narrow = w < 420, ROW = narrow ? 88 : 76, RAIL = 36, out = [];
+    var tx = RAIL + 20, h = LEVELS.length * ROW + 64;
+
+    out.push('<line x1="2" x2="2" y1="0" y2="' + (LEVELS.length * ROW + 6) + '" stroke="' + token('--fg') + '" stroke-width="3"/>');
+    out.push('<line x1="' + RAIL + '" x2="' + RAIL + '" y1="0" y2="' + (LEVELS.length * ROW + 6) + '" stroke="' + token('--fg') + '" stroke-width="3"/>');
+    LEVELS.forEach(function (l, i) {
+      var top = i * ROW, rung = top + 22;
+      out.push('<line x1="2" x2="' + RAIL + '" y1="' + rung + '" y2="' + rung + '" stroke="' + token('--fg') + '" stroke-width="3"/>');
+      out.push(text(c, RAIL / 2 + 1, rung - 6, String(l.n), '--accent', 'text-anchor="middle" font-weight="700"'));
+      out.push(text(c, tx, top + 18, 'Level ' + l.n, '--fg', 'font-weight="700"'));
+      l.chips.forEach(function (n, k) { out.push(chip(c, tx + 64 + k * 22, top + 14, n, 9)); });
+      out.push(text(c, tx, top + 36, narrow && l.short ? l.short : l.name, '--fg'));
+      out.push(text(c, tx, top + 52, narrow ? [l.when, 'Gate: ' + (l.gateShort || l.gate)] : l.when + '. Gate: ' + l.gate, '--muted'));
+    });
+    var sy = LEVELS.length * ROW + 30;
+    out.push('<rect x="0" y="' + (sy - 18) + '" width="' + f1(w) + '" height="34" fill="' + token('--muted') + '" fill-opacity="0.1"/>');
+    out.push(chip(c, 18, sy - 1, 13, 9));
+    out.push(text(c, 36, sy + 3, 'Alongside all four: Systematic' + (narrow ? '' : ', proven rules into code'), '--fg', 'font-weight="700"'));
+
+    mount(el, w, h, 'Ladder diagram, Level 1 at the bottom. ' + LEVELS.slice().reverse().map(function (l) {
+      return 'Level ' + l.n + ', ' + l.name + ', ' + l.when + ', gate: ' + l.gate;
+    }).join('. ') + '. Systematic runs alongside all four.', out);
+  }
+
+  // ---- Fig. 5.2: the promotion rule needs both halves ----
+
+  function drawPromotion(el) {
+    var CELLS = [
+      { e: 1, a: 1, lines: ['Promote.', 'It works, and you', 'can repeat it.'], narrow: ['Promote.', 'It works, and', 'you can repeat it.'], fill: '--fg' },
+      { e: 1, a: 0, lines: ['Not yet.', 'A good result you', 'cannot repeat.'], narrow: ['Not yet.', 'A good result', 'you cannot repeat.'] },
+      { e: 0, a: 1, lines: ['Not yet.', 'You followed the', 'rules: fix them.'], narrow: ['Not yet.', 'You followed the', 'rules: fix them.'] },
+      { e: 0, a: 0, lines: ['Not yet.', 'Fix the habits,', 'then judge the rules.'], narrow: ['Not yet.', 'Fix the habits,', 'then judge', 'the rules.'] }
+    ];
+    var c = context(el), token = c.token, w = c.width, narrow = w < 420;
+    var left = narrow ? 0 : 78, band = narrow ? 22 : 0, top = 40, gap = 6, cw = Math.min(200, (w - left - gap) / 2);
+    var ch = narrow ? 90 : 78, out = [];
+
+    out.push(text(c, left + cw + gap / 2, 12, 'Adherence to your rules', '--fg', 'text-anchor="middle" font-weight="700"'));
+    out.push(text(c, left + cw / 2, 30, '90% or more', '--muted', 'text-anchor="middle"'));
+    out.push(text(c, left + cw * 1.5 + gap, 30, 'Under 90%', '--muted', 'text-anchor="middle"'));
+    if (narrow) {
+      out.push(text(c, 0, top + 15, 'Positive expectancy', '--fg', 'font-weight="700"'));
+      out.push(text(c, 0, top + band + ch + gap + 15, 'Zero or negative expectancy', '--fg', 'font-weight="700"'));
+    } else {
+      out.push(text(c, 0, top + ch / 2 - 4, ['Positive', 'expectancy'], '--fg', 'font-weight="700"'));
+      out.push(text(c, 0, top + ch * 1.5 + gap - 4, ['Zero or', 'negative'], '--fg', 'font-weight="700"'));
+    }
+    CELLS.forEach(function (k) {
+      var lines = narrow ? k.narrow : k.lines;
+      var x = left + (k.a ? 0 : cw + gap), y = top + band + (k.e ? 0 : ch + gap + band);
+      out.push('<rect x="' + f1(x) + '" y="' + y + '" width="' + f1(cw) + '" height="' + ch + '" fill="' + token(k.fill || '--muted') +
+        '" fill-opacity="' + (k.fill ? 1 : 0.12) + '"/>');
+      out.push(text(c, x + 10, y + 22, lines[0], k.fill ? '--bg' : '--fg', 'font-weight="700"'));
+      out.push(text(c, x + 10, y + 40, lines.slice(1), k.fill ? '--bg' : '--fg'));
+    });
+
+    mount(el, w, top + 2 * band + ch * 2 + gap + 4, 'Two by two grid of the promotion rule. Only positive expectancy with 90% or more adherence ' +
+      'promotes. A good result with poor adherence cannot be repeated. Good adherence with no edge means the rules need work. ' +
+      'Neither means fix the habits first.', out);
+  }
+
+  // ---- Fig. 5.3: time works for the seller ----
+
+  function drawTimeDecay(el) {
+    var DAYS = 60;
+    var c = context(el), token = c.token, w = c.width;
+    var h = Math.round(clamp(w * 0.52, 260, 360));
+    var m = { top: 28, right: 16, bottom: 30, left: 44 };
+    var x = function (d) { return m.left + ((DAYS - d) / DAYS) * (w - m.left - m.right); };
+    var y = function (v) { return h - m.bottom - v * (h - m.top - m.bottom); };
+    var curve = [], out = [];
+
+    hGrid(c, out, m, w, y, [0, 0.25, 0.5, 0.75, 1], function (t) { return Math.round(t * 100) + '%'; });
+    [60, 45, 30, 15, 0].forEach(function (d) {
+      out.push(text(c, x(d), h - 8, d === 0 ? 'Expiry' : d + (d === 60 ? ' days left' : ''), '--muted',
+        'text-anchor="' + (d === 60 ? 'start' : d === 0 ? 'end' : 'middle') + '"'));
+    });
+    for (var d = DAYS; d >= 0; d -= 0.5) curve.push(f1(x(d)) + ',' + f1(y(timeValueLeft(d, DAYS))));
+    // The part already lost to time: between the top and the curve.
+    out.push('<polygon points="' + f1(x(DAYS)) + ',' + f1(y(1)) + ' ' + curve.join(' ') + ' ' + f1(x(0)) + ',' + f1(y(1)) + '" fill="' +
+      token('--accent') + '" fill-opacity="0.12"/>');
+    out.push(polyline(curve, token('--fg'), 3));
+    out.push(text(c, m.left, 14, 'Time value left, if nothing else changes', '--fg', 'font-weight="700"'));
+    out.push(text(c, x(16), y(0.86), ['Decay: the seller', 'collects it'], '--accent', 'text-anchor="middle" font-weight="700"'));
+    var half = timeValueLeft(15, DAYS);
+    out.push('<circle cx="' + f1(x(15)) + '" cy="' + f1(y(half)) + '" r="4" fill="' + token('--fg') + '"/>');
+    out.push(text(c, x(15) - 8, y(half) + 18, ['15 days left:', 'half remains'], '--fg', 'text-anchor="end"'));
+
+    mount(el, w, h, 'Line chart: the time value of an at-the-money option over its last 60 days, if nothing else changes. ' +
+      'It falls with the square root of time left: half remains with 15 days to go, and the fall speeds up near expiry. ' +
+      'The seller collects that decay; the buyer pays it.', out);
+  }
+
+  // ---- Fig. 5.4: tuition, already spent ----
+
+  function drawTuition(el) {
+    var c = context(el), token = c.token, w = c.width, out = [];
+    var bw = Math.min(220, w * 0.58), side = bw + 18, ROW = 92;
+
+    out.push(box(c, 0, 0, bw, ['Satellite account']));
+    out.push(arrow(bw / 2, 42, bw / 2, ROW - 4, token('--fg')));
+    out.push(text(c, bw / 2 + 8, 66, 'Fixed, monthly', '--fg'));
+    out.push(box(c, 0, ROW, bw, ['Tuition budget:', 'counted as spent'], { fill: '--accent' }));
+    out.push(arrow(bw / 2, ROW + 52, bw / 2, 2 * ROW + 6, token('--fg')));
+    out.push(box(c, 0, 2 * ROW + 8, bw, ['Level 4 trades']));
+    // Whatever comes back is a bonus.
+    out.push('<path d="M' + f1(bw + 2) + ',' + (2 * ROW + 28) + ' H' + f1(side + 22) + ' V20 H' + f1(bw + 10) + '" fill="none" stroke="' +
+      token('--fg') + '" stroke-width="2" stroke-dasharray="5 4"/>');
+    out.push(arrowhead(bw + 3, 20, Math.PI, token('--fg')));
+    out.push(text(c, side + 30, ROW + 4, ['Anything', 'left over:', 'a bonus'], '--fg', 'font-weight="700"'));
+    // No chasing: the cross marks the urge the budget removes.
+    var yx = ROW + 76;
+    out.push(text(c, side + 30, yx, ['No chasing', 'it back'], '--accent', 'font-weight="700"'));
+    out.push('<path d="M' + f1(side + 6) + ',' + (yx - 14) + ' l12,12 m0,-12 l-12,12" stroke="' + token('--accent') + '" stroke-width="2.5"/>');
+
+    mount(el, w, 2 * ROW + 52, 'Diagram: a fixed monthly amount moves from the satellite account into a tuition budget that is counted ' +
+      'as spent, and from there into Level 4 trades. Anything left over returns as a bonus. Nothing chases the money back.', out);
+  }
+
+  // ---- Fig. 5.5: lost by neglect ----
+
+  function drawNeglect(el) {
+    var DONE = 6, LIMIT = 10;
+    var c = context(el), token = c.token, w = c.width, out = [];
+    var n = DONE + LIMIT, cell = Math.min(40, (w - 4) / n), top = 26;
+
+    out.push(text(c, 0, 14, 'Trading days', '--fg', 'font-weight="700"'));
+    for (var i = 0; i < n; i++) {
+      var x = i * cell, missed = i >= DONE, k = i - DONE + 1;
+      out.push('<rect x="' + f1(x + 1) + '" y="' + top + '" width="' + f1(cell - 2) + '" height="' + f1(cell - 2) + '" fill="' +
+        (missed ? 'none' : token('--fg')) + '" stroke="' + token(missed ? (k === LIMIT ? '--accent' : '--muted') : '--fg') + '" stroke-width="' +
+        (k === LIMIT ? 3 : 1.5) + '"/>');
+      if (missed && (cell >= 22 || k === 1 || k === LIMIT)) {
+        out.push(text(c, x + cell / 2, top + cell / 2 + 3, String(k), k === LIMIT ? '--accent' : '--muted',
+          'text-anchor="middle" font-weight="700"' + (cell < 22 ? ' font-size="10"' : '')));
+      }
+    }
+    var below = top + cell + 22;
+    out.push('<rect x="0" y="' + (below - 10) + '" width="10" height="10" fill="' + token('--fg') + '"/>');
+    out.push(text(c, 16, below, 'Routine done', '--fg'));
+    out.push('<rect x="112.75" y="' + (below - 9.25) + '" width="8.5" height="8.5" fill="none" stroke="' + token('--muted') + '" stroke-width="1.5"/>');
+    out.push(text(c, 128, below, 'Missed, counted', '--fg'));
+    var end = (n - 0.5) * cell;
+    out.push(arrow(end, below + 10, end, below + 40, token('--accent')));
+    out.push(text(c, end - 10, below + 32, ['Day ' + LIMIT + ': the active slice', 'goes back to the core'], '--accent',
+      'text-anchor="end" font-weight="700"'));
+
+    mount(el, w, below + 58, 'A strip of trading days: the routine is done for ' + DONE + ' days, then missed for ' + LIMIT +
+      ' in a row. On the tenth missed day the demotion rule sends the active slice back to the core.', out);
+  }
+
+  // ---- Fig. 6.5: a put puts a floor under the core ----
+
+  function drawHedge(el) {
+    var START = 100, FLOOR = 0.9, PREMIUM = 0.02, X_MIN = -0.5, X_MAX = 0.3, Y_MIN = 40, Y_MAX = 140;
+    var c = context(el), token = c.token, w = c.width;
+    var h = Math.round(clamp(w * 0.58, 280, 420));
+    var m = { top: 28, right: 108, bottom: 30, left: 46 };
+    var x = function (mv) { return m.left + ((mv - X_MIN) / (X_MAX - X_MIN)) * (w - m.left - m.right); };
+    var y = function (v) { return h - m.bottom - ((v - Y_MIN) / (Y_MAX - Y_MIN)) * (h - m.top - m.bottom); };
+    var pct = function (v) { return (v > 0 ? '+' : v < 0 ? '&minus;' : '') + Math.abs(Math.round(v * 100)) + '%'; };
+    var bare = [], hedged = [], out = [];
+
+    hGrid(c, out, m, w, y, [40, 60, 80, 100, 120, 140], function (t) { return '$' + t; });
+    (w < 420 ? [-0.5, 0, 0.3] : [-0.5, -0.4, -0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3]).forEach(function (t) {
+      out.push(text(c, x(t), h - 8, t === 0 ? '0' : pct(t), '--muted', 'text-anchor="' + (t === X_MIN ? 'start' : t === X_MAX ? 'end' : 'middle') + '"'));
+    });
+    out.push(text(c, m.left, 14, 'Core value after a market move', '--fg', 'font-weight="700"'));
+    // The protected zone: below the floor, the hedge pays.
+    out.push('<rect x="' + f1(x(X_MIN)) + '" y="' + f1(y(START * FLOOR)) + '" width="' + f1(x(FLOOR - 1) - x(X_MIN)) + '" height="' +
+      f1(y(Y_MIN) - y(START * FLOOR)) + '" fill="' + token('--accent') + '" fill-opacity="0.08"/>');
+    for (var mv = X_MIN; mv <= X_MAX + 1e-9; mv += 0.01) {
+      bare.push(f1(x(mv)) + ',' + f1(y(START * (1 + mv))));
+      hedged.push(f1(x(mv)) + ',' + f1(y(START * hedgedValue(mv, FLOOR, PREMIUM))));
+    }
+    out.push(polyline(bare, token('--muted'), 2, 'stroke-dasharray="5 4"'));
+    out.push(polyline(hedged, token('--accent'), 3));
+
+    var floorV = START * (FLOOR - PREMIUM), topBare = START * (1 + X_MAX), topHedged = START * hedgedValue(X_MAX, FLOOR, PREMIUM);
+    var ly = spread([y(topBare) + 4, y(topHedged) + 4], 17);
+    out.push(text(c, x(X_MAX) + 10, ly[0], 'No hedge: $' + topBare, '--fg', 'font-weight="700"'));
+    out.push(text(c, x(X_MAX) + 10, ly[1], 'Hedged: $' + Math.round(topHedged), '--accent', 'font-weight="700"'));
+    out.push(text(c, x(X_MIN) + 6, y(floorV) - 8, 'Floor: $' + Math.round(floorV), '--fg', 'font-weight="700"'));
+    out.push(text(c, x(X_MIN) + 6, y(START * (1 + X_MIN)) - 8, 'Unhedged: $' + START * (1 + X_MIN), '--muted'));
+
+    mount(el, w, h, 'Line chart of a $100 core after market moves from minus 50% to plus 30%. Unhedged, it falls with the market. ' +
+      'Hedged with a put 10% below that costs $2, it never ends below $' + Math.round(floorV) + ', and in a rising market it trails by the $2 premium.', out);
+  }
+
   // ---- Chapter 4: numbered strategy chips, colored by slice ----
   // Passive core in --fg (as in Chapters 2 and 6), the casino floor in --accent, the rest --muted.
 
@@ -1216,7 +1428,7 @@
   function drawGroups(el) {
     var GROUPS = [
       ['Passive core', [1, 2, 3], 'Ch. 6'], ['Patient active', [4], 'Ch. 7'], ['Active satellite', [5, 9], 'Ch. 7'],
-      ['Options, seller&rsquo;s side', [6, 7], 'Ch. 8'], ['Insurance', [8], ''], ['Casino floor', [10, 11, 12], 'Ch. 9'],
+      ['Options, seller&rsquo;s side', [6, 7], 'Ch. 8'], ['Insurance', [8], 'Ch. 6'], ['Casino floor', [10, 11, 12], 'Ch. 9'],
       ['Systematic', [13], 'Ch. 15']
     ];
     var c = context(el), token = c.token, w = c.width, ROW = 34, R = 10, out = [];
@@ -1264,6 +1476,8 @@
     compound: drawCompound, breakeven: drawBreakeven,
     fees: drawFees, pie: drawPie, 'dividend-loop': drawDividendLoop, 'dividend-income': drawDividendIncome,
     drift: drawDrift, 'core-default': drawCoreDefault,
+    hedge: drawHedge,
+    ladder: drawLadder, promotion: drawPromotion, 'time-decay': drawTimeDecay, tuition: drawTuition, neglect: drawNeglect,
     tags: drawTags, 'menu-grid': drawMenuGrid, 'loss-shape': drawLossShape, 'effort-shapes': drawEffortShapes,
     groups: drawGroups, attention: drawAttention,
     'edge-chain': drawEdgeChain, 'cost-waterfall': drawCostWaterfall, memory: drawMemory,
@@ -1277,6 +1491,7 @@
     module.exports = {
       grow: grow, breakeven: breakeven, futureValue: futureValue, drift: drift,
       mostUnderweight: mostUnderweight, dividendIncome: dividendIncome, pie: PIE,
+      hedgedValue: hedgedValue, timeValueLeft: timeValueLeft, promoted: promoted,
       strategies: STRATEGIES, attentionShare: attentionShare, concentrationHit: concentrationHit,
       expectancy: expectancy, breakevenPayoff: breakevenPayoff, netAfterCosts: netAfterCosts, traderB: TRADER_B,
       roundTrip: roundTrip, lossPath: lossPath,

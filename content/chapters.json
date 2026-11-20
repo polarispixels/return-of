@@ -21,7 +21,7 @@
       "numeral": "III",
       "title": "The Portfolio",
       "chapters": [
-        { "slug": "the-core", "title": "The Core", "summary": "Index funds, pies, dividends." },
+        { "slug": "the-core", "title": "The Core", "summary": "Index funds, pies, dividends, and a hedge." },
         { "slug": "the-satellite", "title": "The Satellite", "summary": "Swing trading and growth momentum." },
         { "slug": "options-from-the-sellers-side", "title": "Options From the Seller's Side", "summary": "Covered calls and the Wheel." },
         { "slug": "the-casino-floor", "title": "The Casino Floor", "summary": "Long options, 0DTE and day trading, paid for with a tuition budget." }

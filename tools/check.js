@@ -111,6 +111,14 @@ if (typeof chart.grow !== 'function' || typeof chart.breakeven !== 'function' ||
     if (chart.lossPath(10000, 0.07, 30, 10, 0.5).toFixed(0) !== '38061') fail('chart.lossPath: Fig. 1.3 ends at $38,061 with the fall');
     if (chart.lossPath(10000, 0.07, 30, 99, 0.5).toFixed(0) !== '76123') fail('chart.lossPath: Fig. 1.3 ends at $76,123 without it');
   }
+  // Chapter 12 figures.
+  if (typeof chart.rMultiple !== 'function' || !Array.isArray(chart.journalRows)) fail('js/chart.js: must export rMultiple and journalRows');
+  else {
+    if (!near(chart.rMultiple(297, 99), 3)) fail('chart.rMultiple: $297 on $99 at risk is 3R');
+    const rows = chart.journalRows, avgR = rows.reduce((s, r) => s + r.r, 0) / rows.length;
+    if (avgR.toFixed(2) !== '0.83') fail('chart.journalRows: the example rows average +0.83R');
+    if (!near(chart.adherence(rows.map((r) => r.ok)), 5 / 6)) fail('chart.journalRows: 5 of 6 example rows followed the rules');
+  }
   // Chapter 11 figures.
   if (typeof chart.sizedPath !== 'function' || typeof chart.adherence !== 'function') fail('js/chart.js: must export sizedPath and adherence');
   else {

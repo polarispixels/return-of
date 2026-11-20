@@ -4,6 +4,15 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-11-20
+
+Chapter 12 gets a figure for every section.
+
+### Added
+
+- Chapter 12, The Morning Routine and the Journal: five figures. Fig. 12.1, thirty minutes as about 2% of a day. Fig. 12.2, the four-step checklist, with the quiet morning that still counts. Fig. 12.3, one journal entry, with the plan written before the trade and the outcome after. Fig. 12.4, six journal rows rolling up into expectancy (+0.83R) and adherence (83%), short of promotion. Fig. 12.5, the watched and unwatched states of the demotion rule.
+- Deploy checks for the R multiple and the example journal rows.
+
 ## [0.17.0] - 2026-11-20
 
 Chapter 11 gets a figure for every section, and Chapter 5 agrees with Chapter 9 on tuition.

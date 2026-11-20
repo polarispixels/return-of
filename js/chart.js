@@ -55,6 +55,12 @@
     ['Systematic', 'Depends on rules', 'High upfront, low ongoing', 'systematic']
   ].map(function (r, i) { return { num: i + 1, name: r[0], risk: r[1], effort: r[2], group: r[3] }; });
 
+  // A result as a multiple of the dollars put at risk (an "R").
+  function rMultiple(result, risk) { return result / risk; }
+
+  // Six made-up journal rows for Fig. 12.4: result in R, and whether the rules were followed.
+  var JOURNAL_ROWS = [{ r: 3, ok: 1 }, { r: -1, ok: 1 }, { r: -1, ok: 0 }, { r: 2, ok: 1 }, { r: -1, ok: 1 }, { r: 3, ok: 1 }];
+
   // What is left of 1 after a run of losses, each costing its own share of what remains.
   // The first entry is the start.
   function sizedPath(risks) {
@@ -1099,6 +1105,142 @@
 
     mount(el, w, 294, 'Flowchart: every dollar starts in the core. A small satellite tests a method. The journal measures ' +
       'expectancy and adherence. If it shows an edge, the satellite may grow within the rules. If not, the money goes back to the core.', out);
+  }
+
+  // ---- Fig. 12.1: thirty minutes out of a day ----
+
+  function drawDayRing(el) {
+    var MIN = 30, DAY = 24 * 60, AWAKE = 16 * 60;
+    var c = context(el), token = c.token, w = c.width, wide = w >= 480, out = [];
+    var R = clamp(w * 0.16, 60, 92), cx = R + 6, cy = R + 10;
+    var share = MIN / DAY, a0 = -Math.PI / 2, a1 = a0 + share * 2 * Math.PI, r = R * 0.62;
+    var pt = function (rad, ang) { return f1(cx + rad * Math.cos(ang)) + ',' + f1(cy + rad * Math.sin(ang)); };
+
+    out.push('<circle cx="' + cx + '" cy="' + cy + '" r="' + f1((R + r) / 2) + '" fill="none" stroke="' + token('--accent-2-soft') + '" stroke-width="' + f1(R - r) + '"/>');
+    out.push('<path d="M' + pt(R + 4, a0) + ' A' + f1(R + 4) + ',' + f1(R + 4) + ' 0 0 1 ' + pt(R + 4, a1) + ' L' + pt(r - 4, a1) + ' A' + f1(r - 4) + ',' +
+      f1(r - 4) + ' 0 0 0 ' + pt(r - 4, a0) + ' Z" fill="' + token('--accent') + '"/>');
+    out.push(text(c, cx, cy - 2, '24 hours', '--fg', 'text-anchor="middle" font-weight="700"'));
+    out.push(text(c, cx, cy + 14, 'one day', '--muted', 'text-anchor="middle"'));
+    var tx = wide ? 2 * R + 40 : 0, ty = wide ? cy - 34 : 2 * R + 40;
+    out.push(text(c, tx, ty, MIN + ' minutes of routine', '--accent', 'font-weight="700"'));
+    out.push(text(c, tx, ty + 18, ['About ' + f1(share * 100) + '% of the day, ' + f1(MIN / AWAKE * 100) + '% of 16 waking hours.',
+      'Not heroic effort: the same short slot, every day.'], '--fg'));
+
+    mount(el, w, wide ? 2 * R + 24 : ty + 44, 'Ring of a 24-hour day with a thin red slice for 30 minutes of routine: about ' + f1(share * 100) +
+      '% of the day, or ' + f1(MIN / AWAKE * 100) + '% of 16 waking hours.', out);
+  }
+
+  // ---- Fig. 12.2: the checklist, and the morning with nothing to do ----
+
+  function drawChecklist(el) {
+    var c = context(el), token = c.token, w = c.width, out = [];
+    var x0 = 0, bw = Math.min(300, w * (w < 480 ? 0.62 : 0.5)), cx = bw / 2, ROW = 66;
+    var STEPS = [['1. Review open positions', 'and stops'], ['2. Check the watchlist', 'for setups'], ['3. Place or adjust orders'],
+      ['4. Log it in the journal']];
+    var tops = [0, ROW, 2 * ROW + 14, 3 * ROW + 14];
+
+    STEPS.forEach(function (s, i) {
+      out.push(box(c, x0, tops[i], bw, s, i === 3 ? { fill: '--fg' } : {}));
+      var bh = s.length > 1 ? 50 : 40;
+      if (i < 3) out.push(arrow(cx, tops[i] + bh + 2, cx, tops[i + 1] - 2, token('--fg')));
+    });
+    // No setups: skip step 3, straight to the log.
+    var sx = bw + 14, from = tops[1] + 25, to = tops[3] + 20;
+    out.push('<path d="M' + f1(bw + 2) + ',' + from + ' H' + f1(sx) + ' V' + to + ' H' + f1(bw + 10) + '" fill="none" stroke="' + token('--accent-2') +
+      '" stroke-width="2" stroke-dasharray="5 4"/>');
+    out.push(arrowhead(bw + 3, to, Math.PI, token('--accent-2')));
+    out.push(text(c, sx + 10, (from + to) / 2 - 8, ['No setups,', 'no changes:', 'still counts'], '--accent-2', 'font-weight="700"'));
+
+    mount(el, w, tops[3] + 46, 'Flow of the four-step routine: review positions and stops, check the watchlist, place or adjust orders, ' +
+      'log it. A dashed path skips from the watchlist straight to the log when there are no setups; that morning still counts.', out);
+  }
+
+  // ---- Fig. 12.3: one journal entry, written at the time ----
+
+  function drawJournalEntry(el) {
+    var PLAN = [['Date', 'Day 1'], ['Strategy', '9, Swing Trading'], ['Setup', 'Pullback to a rising average'], ['Entry', '$50.00'],
+      ['Stop', '$47.00'], ['Target', '$59.00'], ['Size', '33 shares, $99 at risk']];
+    var AFTER = [['Exit', '$59.00 on day 9, target hit'], ['Result', '+$297, or ' + rMultiple(297, 99).toFixed(1) + 'R'], ['Rules followed', 'Yes'],
+      ['Note', function (w0) { return w0 < 420 ? 'Waited; did not chase' : 'Waited for the pullback; did not chase'; }]];
+    var c = context(el), token = c.token, w = c.width, wide = w >= 600, out = [];
+    var pw = wide ? (w - 24) / 2 : w, LINE = 22, labelW = 104;
+
+    function card(ox, oy, title, tok, rows) {
+      var h = 34 + rows.length * LINE + 8;
+      out.push('<rect x="' + f1(ox + 1) + '" y="' + (oy + 1) + '" width="' + f1(pw - 2) + '" height="' + (h - 2) + '" fill="none" stroke="' + token(tok) + '" stroke-width="2"/>');
+      out.push('<rect x="' + f1(ox) + '" y="' + oy + '" width="' + f1(pw) + '" height="26" fill="' + token(tok) + '"/>');
+      out.push(text(c, ox + 10, oy + 18, title, '--bg', 'font-weight="700"'));
+      rows.forEach(function (r, i) {
+        var y = oy + 48 + i * LINE;
+        out.push(text(c, ox + 10, y, r[0], '--muted'));
+        out.push(text(c, ox + labelW, y, typeof r[1] === 'function' ? r[1](w) : r[1], '--fg', 'font-weight="700"'));
+      });
+      return h;
+    }
+    var h1 = card(0, 0, 'Written before the trade', '--accent-2', PLAN);
+    var h2 = card(wide ? pw + 24 : 0, wide ? 0 : h1 + 14, 'Written after the exit', '--fg', AFTER);
+
+    mount(el, w, wide ? Math.max(h1, h2) : h1 + 14 + h2, 'An example journal entry. Before the trade: day 1, strategy 9 swing trading, ' +
+      'a pullback to a rising average, entry $50, stop $47, target $59, 33 shares with $99 at risk. After the exit: $59 on day 9, ' +
+      'plus $297 or 3R, rules followed, and a note.', out);
+  }
+
+  // ---- Fig. 12.4: the two numbers the journal computes ----
+
+  function drawJournalMath(el) {
+    var c = context(el), token = c.token, w = c.width, wide = w >= 560, out = [];
+    var rows = JOURNAL_ROWS, n = rows.length, avgR = rows.reduce(function (s, r) { return s + r.r; }, 0) / n, adh = adherence(rows.map(function (r) { return r.ok; }));
+    var tw = wide ? 200 : w, RH = 24, top = 26;
+
+    out.push(text(c, 0, 14, 'Journal', '--fg', 'font-weight="700"'));
+    out.push(text(c, 0, top + 14, 'Trade', '--muted'));
+    out.push(text(c, tw * 0.45, top + 14, 'Result', '--muted', 'text-anchor="end"'));
+    out.push(text(c, tw - 4, top + 14, 'Rules', '--muted', 'text-anchor="end"'));
+    rows.forEach(function (r, i) {
+      var y = top + 22 + i * RH;
+      out.push('<line x1="0" x2="' + f1(tw) + '" y1="' + y + '" y2="' + y + '" stroke="' + token('--muted') + '" stroke-width="0.5"/>');
+      out.push(text(c, 0, y + 16, String(i + 1), '--fg'));
+      out.push(text(c, tw * 0.45, y + 16, (r.r > 0 ? '+' : '&minus;') + Math.abs(r.r) + 'R', r.r > 0 ? '--fg' : '--accent', 'text-anchor="end" font-weight="700"'));
+      out.push(text(c, tw - 4, y + 16, r.ok ? 'Yes' : 'No', r.ok ? '--fg' : '--accent', 'text-anchor="end" font-weight="700"'));
+    });
+    var tableBottom = top + 22 + n * RH;
+
+    var ox = wide ? tw + 50 : 0, oy = wide ? top + 4 : tableBottom + 40, bw = wide ? Math.min(260, w - ox) : w;
+    if (wide) out.push(arrow(tw + 8, top + 22 + n * RH / 2, ox - 6, top + 22 + n * RH / 2, token('--fg')));
+    else out.push(arrow(w / 2, tableBottom + 6, w / 2, oy - 4, token('--fg')));
+    out.push(box(c, ox, oy, bw, ['Expectancy: +' + avgR.toFixed(2) + 'R a trade', 'positive'], { fill: '--fg' }));
+    out.push(box(c, ox, oy + 62, bw, ['Adherence: ' + Math.round(adh * 100) + '%', 'under the 90% bar'], { stroke: '--accent' }));
+    out.push(text(c, ox, oy + 136, ['Promotion needs both.', 'Not yet: fix the habit first.'], '--fg', 'font-weight="700"'));
+
+    mount(el, w, wide ? Math.max(tableBottom + 6, oy + 166) : oy + 166, 'Six made-up journal rows with results of plus 3R, minus 1R, minus 1R, ' +
+      'plus 2R, minus 1R, and plus 3R, and one rule broken. Expectancy is plus ' + avgR.toFixed(2) + 'R a trade, which is positive; adherence is ' +
+      Math.round(adh * 100) + '%, under the 90% bar, so no promotion yet.', out);
+  }
+
+  // ---- Fig. 12.5: watched, or sent home ----
+
+  function drawWatched(el) {
+    var c = context(el), token = c.token, w = c.width, wide = w >= 560, out = [];
+    var bw = wide ? (w - 120) / 2 : w;
+
+    out.push(box(c, 0, 0, bw, ['Routine running:', 'the active slice is managed'], { fill: '--accent' }));
+    var ox = wide ? bw + 120 : 0, oy = wide ? 0 : 120;
+    out.push(box(c, ox, oy, bw, ['No routine:', 'the slice is back in the core'], { fill: '--fg' }));
+    if (wide) {
+      out.push(arrow(bw + 6, 18, ox - 6, 18, token('--fg')));
+      out.push(text(c, bw + 60, 10, '10 trading days', '--fg', 'text-anchor="middle" font-weight="700"'));
+      out.push(text(c, bw + 60, 44, 'without it', '--fg', 'text-anchor="middle"'));
+      out.push('<path d="M' + f1(ox + bw / 2) + ',52 V82 H' + f1(bw / 2) + ' V58" fill="none" stroke="' + token('--muted') + '" stroke-width="1.5" stroke-dasharray="4 3"/>');
+      out.push(arrowhead(bw / 2, 54, -Math.PI / 2, token('--muted')));
+      out.push(text(c, w / 2, 100, 'Earning the way back up: an open question in Chapter 5', '--muted', 'text-anchor="middle"'));
+    } else {
+      out.push(arrow(w / 2, 54, w / 2, oy - 6, token('--fg')));
+      out.push(text(c, w / 2 + 10, 80, ['10 trading days', 'without it'], '--fg', 'font-weight="700"'));
+      out.push(text(c, 0, oy + 70, ['Earning the way back up is', 'an open question in Chapter 5.'], '--muted'));
+    }
+
+    mount(el, w, wide ? 108 : oy + 95, 'Two states. While the routine runs, the active slice is managed. After 10 trading days without it, the ' +
+      'slice goes back into the core, built to be left alone. How to earn the way back up is an open question in Chapter 5.', out);
   }
 
   // ---- Fig. 11.1: decide while calm, check under pressure ----
@@ -2395,6 +2537,8 @@
     fees: drawFees, pie: drawPie, 'dividend-loop': drawDividendLoop, 'dividend-income': drawDividendIncome,
     drift: drawDrift, 'core-default': drawCoreDefault,
     hedge: drawHedge,
+    'day-ring': drawDayRing, checklist: drawChecklist, 'journal-entry': drawJournalEntry, 'journal-math': drawJournalMath,
+    watched: drawWatched,
     'calm-check': drawCalmCheck, traps: drawTraps, revenge: drawRevenge, restraint: drawRestraint, adherence: drawAdherence,
     'exit-plan': drawExitPlan, ratchet: drawRatchet, 'sized-trades': drawSizedTrades, 'tug-of-war': drawTugOfWar,
     streaks: drawStreaks,
@@ -2418,7 +2562,7 @@
     module.exports = {
       grow: grow, breakeven: breakeven, futureValue: futureValue, drift: drift,
       mostUnderweight: mostUnderweight, dividendIncome: dividendIncome, pie: PIE,
-      hedgedValue: hedgedValue, sizedPath: sizedPath, adherence: adherence, streakLeft: streakLeft, sizedTrades: SIZED, longCallPL: longCallPL, tuitionPath: tuitionPath, coveredCallPL: coveredCallPL, shortPutPL: shortPutPL, wheel: WHEEL, rewardRisk: rewardRisk, positionSize: positionSize, runningAverage: runningAverage, traderA: TRADER_A, timeValueLeft: timeValueLeft, promoted: promoted,
+      hedgedValue: hedgedValue, rMultiple: rMultiple, journalRows: JOURNAL_ROWS, sizedPath: sizedPath, adherence: adherence, streakLeft: streakLeft, sizedTrades: SIZED, longCallPL: longCallPL, tuitionPath: tuitionPath, coveredCallPL: coveredCallPL, shortPutPL: shortPutPL, wheel: WHEEL, rewardRisk: rewardRisk, positionSize: positionSize, runningAverage: runningAverage, traderA: TRADER_A, timeValueLeft: timeValueLeft, promoted: promoted,
       strategies: STRATEGIES, attentionShare: attentionShare, concentrationHit: concentrationHit,
       expectancy: expectancy, breakevenPayoff: breakevenPayoff, netAfterCosts: netAfterCosts, traderB: TRADER_B,
       roundTrip: roundTrip, lossPath: lossPath,

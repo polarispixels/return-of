@@ -4,6 +4,15 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-20
+
+Chapter 7 gets a figure for every section.
+
+### Added
+
+- Chapter 7, The Satellite: five figures. Fig. 7.1, a month of mornings: 10.5 hours of routine for the satellite against one automatic deposit for the core. Fig. 7.2, sketches of the three swing setups, each with entry, stop, and target. Fig. 7.3, growth momentum as a funnel. Fig. 7.4, the three written numbers (a 3 to 1 trade) and how a tight or wide stop sizes the same $100 of risk. Fig. 7.5, Trader A's running average over 50 trades, settling at +$60.
+- Deploy checks for reward to risk, position size, the running average, and Trader A's made-up sequence.
+
 ## [0.11.0] - 2026-11-20
 
 Chapter 6 brought in line with the rest of the book.

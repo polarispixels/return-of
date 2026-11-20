@@ -110,6 +110,24 @@ if (typeof chart.grow !== 'function' || typeof chart.breakeven !== 'function' ||
     if (chart.lossPath(10000, 0.07, 30, 10, 0.5).toFixed(0) !== '38061') fail('chart.lossPath: Fig. 1.3 ends at $38,061 with the fall');
     if (chart.lossPath(10000, 0.07, 30, 99, 0.5).toFixed(0) !== '76123') fail('chart.lossPath: Fig. 1.3 ends at $76,123 without it');
   }
+  // Chapter 7 figures.
+  if (typeof chart.rewardRisk !== 'function' || typeof chart.positionSize !== 'function' || typeof chart.runningAverage !== 'function') {
+    fail('js/chart.js: must export rewardRisk, positionSize, and runningAverage');
+  } else {
+    if (!near(chart.rewardRisk(50, 47, 59), 3)) fail('chart.rewardRisk: entry 50, stop 47, target 59 is 3 to 1');
+    if (chart.positionSize(10000, 0.01, 50, 47) !== 33) fail('chart.positionSize: $100 at risk with a $3 stop is 33 shares');
+    if (chart.positionSize(10000, 0.01, 50, 49) !== 100 || chart.positionSize(10000, 0.01, 50, 45) !== 20) {
+      fail('chart.positionSize: a $1 stop allows 100 shares, a $5 stop 20');
+    }
+    const a = chart.traderA;
+    if (!Array.isArray(a) || a.length !== 50 || a.filter((v) => v > 0).length !== 20 || a.reduce((s, v) => s + v, 0) !== 3000) {
+      fail('chart.traderA: 50 trades, 20 wins of $300 and 30 losses of $100, netting $3,000');
+    } else {
+      const run = chart.runningAverage(a);
+      if (!near(run[49], 60)) fail('chart.runningAverage: Trader A settles at +$60 a trade after 50');
+      if (!near(run[4], -20)) fail('chart.runningAverage: Trader A averages -$20 after the first 5 trades');
+    }
+  }
   // Chapter 5 figures.
   if (typeof chart.timeValueLeft !== 'function') fail('js/chart.js: must export timeValueLeft');
   else {

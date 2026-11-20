@@ -55,6 +55,22 @@
     ['Systematic', 'Depends on rules', 'High upfront, low ongoing', 'systematic']
   ].map(function (r, i) { return { num: i + 1, name: r[0], risk: r[1], effort: r[2], group: r[3] }; });
 
+  // Reward per dollar of risk, from the three written numbers of a trade.
+  function rewardRisk(entry, stop, target) { return (target - entry) / (entry - stop); }
+
+  // Whole shares that put `riskShare` of `capital` at risk if the stop is hit.
+  function positionSize(capital, riskShare, entry, stop) { return Math.floor(capital * riskShare / (entry - stop) + 1e-9); }
+
+  // Average result so far, after each trade.
+  function runningAverage(results) {
+    var sum = 0;
+    return results.map(function (v, i) { sum += v; return sum / (i + 1); });
+  }
+
+  // Trader A from the Chapter 3 table (40% wins of $300, 60% losses of $100), as 50 trades
+  // in a made-up order.
+  var TRADER_A = 'LLWLLWLLWLLLWWLLWLLWLWLLLWWLLWLLWLWLLLWWLWLLWWLWLW'.split('').map(function (k) { return k === 'W' ? 300 : -100; });
+
   // Share of an at-the-money option's time value left with `daysLeft` of `daysTotal`, under
   // the standard approximation that time value scales with the square root of time left.
   function timeValueLeft(daysLeft, daysTotal) { return Math.sqrt(daysLeft / daysTotal); }
@@ -1031,6 +1047,190 @@
       'expectancy and adherence. If it shows an edge, the satellite may grow within the rules. If not, the money goes back to the core.', out);
   }
 
+  // ---- Fig. 7.1: a month of mornings ----
+
+  function drawAttentionMonth(el) {
+    var DAYS = 21, MINUTES = 30;
+    var c = context(el), token = c.token, w = c.width, narrow = w < 420, out = [];
+    var m = { left: narrow ? 0 : 76, right: narrow ? 0 : 92 };
+    var cell = (w - m.left - m.right) / DAYS, size = Math.min(26, cell - 2), ROW = narrow ? 64 : 44;
+    var hours = DAYS * MINUTES / 60;
+
+    out.push(text(c, m.left, 12, 'A month of ' + DAYS + ' trading days', '--muted'));
+    [{ name: 'Satellite', token: '--accent', days: DAYS, total: hours + ' hours', note: MINUTES + ' minutes every morning' },
+      { name: 'Core', token: '--fg', days: 1, total: 'About none', note: 'One automatic deposit' }].forEach(function (r, k) {
+      var top = 24 + k * ROW, cy = top + (narrow ? 22 : 4);
+      if (narrow) {
+        out.push(text(c, 0, top + 12, r.name + ': ' + r.total, '--fg', 'font-weight="700"'));
+      } else {
+        out.push(text(c, m.left - 10, cy + size / 2 + 4, r.name, '--fg', 'text-anchor="end" font-weight="700"'));
+        out.push(text(c, w - m.right + 10, cy + size / 2 - 3, r.total, '--fg', 'font-weight="700"'));
+        out.push(text(c, w - m.right + 10, cy + size / 2 + 12, r.note.split(' ').slice(0, 2).join(' '), '--muted'));
+      }
+      for (var d = 0; d < DAYS; d++) {
+        var x = m.left + d * cell + (cell - size) / 2, on = d < r.days;
+        out.push('<rect x="' + f1(x) + '" y="' + f1(cy) + '" width="' + f1(size) + '" height="' + f1(size) + '" fill="' +
+          (on ? token(r.token) : 'none') + '" stroke="' + token(on ? r.token : '--muted') + '" stroke-width="' + (on ? 0 : 1) + '"' +
+          (on ? '' : ' stroke-opacity="0.4"') + '/>');
+      }
+      if (narrow) out.push(text(c, 0, cy + size + 15, r.note, '--muted'));
+    });
+
+    mount(el, w, 24 + 2 * ROW + (narrow ? 10 : 0), 'Two rows of ' + DAYS + ' trading days. The satellite needs a ' + MINUTES +
+      '-minute routine every morning, about ' + hours + ' hours a month. The core needs one automatic deposit.', out);
+  }
+
+  // ---- Fig. 7.2: three setups, each with its exit planned ----
+  // Sketches, not prices: points are on a 0 to 1 grid. Each has a reference line, an
+  // entry, a stop below, and a target above.
+
+  var SETUPS = [
+    { name: 'Pullback to a rising average', ref: [[0, 0.18], [1, 0.68]],
+      price: [[0, 0.3], [0.15, 0.45], [0.3, 0.6], [0.42, 0.52], [0.52, 0.46], [0.6, 0.53], [0.75, 0.7], [0.88, 0.8], [1, 0.88]],
+      entry: [0.6, 0.53], stop: 0.4, target: 0.84 },
+    { name: 'Breakout from a base', ref: [[0.12, 0.55], [0.58, 0.55]],
+      price: [[0, 0.15], [0.12, 0.5], [0.22, 0.42], [0.32, 0.54], [0.42, 0.43], [0.52, 0.53], [0.6, 0.6], [0.75, 0.72], [0.88, 0.8], [1, 0.88]],
+      entry: [0.6, 0.6], stop: 0.41, target: 0.84 },
+    { name: 'Bounce off a level', ref: [[0, 0.3], [1, 0.3]],
+      price: [[0, 0.72], [0.14, 0.5], [0.26, 0.33], [0.36, 0.48], [0.46, 0.36], [0.55, 0.32], [0.64, 0.42], [0.8, 0.6], [1, 0.7]],
+      entry: [0.64, 0.42], stop: 0.24, target: 0.66 }
+  ];
+
+  function drawSetups(el) {
+    var c = context(el), token = c.token, w = c.width, wide = w >= 560, out = [];
+    var gap = 24, pw = wide ? (w - 2 * gap) / 3 : w, PH = 130, head = 22;
+
+    SETUPS.forEach(function (s, k) {
+      var ox = wide ? k * (pw + gap) : 0, oy = wide ? 0 : k * (head + PH + 18);
+      var x = function (v) { return ox + v * pw; }, y = function (v) { return oy + head + (1 - v) * PH; };
+      var line = function (pts) { return pts.map(function (p) { return f1(x(p[0])) + ',' + f1(y(p[1])); }); };
+      out.push(text(c, ox, oy + 13, s.name, '--fg', 'font-weight="700"'));
+      out.push('<line x1="' + f1(x(0)) + '" x2="' + f1(x(1)) + '" y1="' + f1(y(0)) + '" y2="' + f1(y(0)) + '" stroke="' + token('--muted') + '" stroke-width="0.5"/>');
+      out.push(polyline(line(s.ref), token('--muted'), 1.5));
+      // Stop and target run from the entry to the right edge.
+      out.push('<line x1="' + f1(x(s.entry[0])) + '" x2="' + f1(x(1)) + '" y1="' + f1(y(s.stop)) + '" y2="' + f1(y(s.stop)) + '" stroke="' +
+        token('--accent') + '" stroke-width="1.5" stroke-dasharray="5 3"/>');
+      out.push('<line x1="' + f1(x(s.entry[0])) + '" x2="' + f1(x(1)) + '" y1="' + f1(y(s.target)) + '" y2="' + f1(y(s.target)) + '" stroke="' +
+        token('--fg') + '" stroke-width="1" stroke-dasharray="2 3"/>');
+      out.push(polyline(line(s.price), token('--fg'), 2));
+      out.push('<circle cx="' + f1(x(s.entry[0])) + '" cy="' + f1(y(s.entry[1])) + '" r="5" fill="' + token('--fg') + '" stroke="' + token('--bg') + '" stroke-width="2"/>');
+    });
+
+    var ly = wide ? head + PH + 24 : 3 * (head + PH + 18) + 4;
+    out.push('<circle cx="5" cy="' + (ly - 4) + '" r="5" fill="' + token('--fg') + '"/>');
+    out.push(text(c, 14, ly, 'Entry', '--fg'));
+    out.push('<line x1="62" x2="84" y1="' + (ly - 4) + '" y2="' + (ly - 4) + '" stroke="' + token('--accent') + '" stroke-width="1.5" stroke-dasharray="5 3"/>');
+    out.push(text(c, 90, ly, 'Stop', '--fg'));
+    out.push('<line x1="130" x2="152" y1="' + (ly - 4) + '" y2="' + (ly - 4) + '" stroke="' + token('--fg') + '" stroke-width="1" stroke-dasharray="2 3"/>');
+    out.push(text(c, 158, ly, 'Target', '--fg'));
+    out.push('<line x1="210" x2="232" y1="' + (ly - 4) + '" y2="' + (ly - 4) + '" stroke="' + token('--muted') + '" stroke-width="1.5"/>');
+    out.push(text(c, 238, ly, w < 330 ? 'Ref.' : 'Average, base, level', '--fg'));
+
+    mount(el, w, ly + 8, 'Three sketches of swing setups, not real prices: a pullback to a rising average, a breakout from a base, ' +
+      'and a bounce off a level. Each marks the entry, a stop below it, and a target above it, all planned before the trade.', out);
+  }
+
+  // ---- Fig. 7.3: growth momentum as a funnel ----
+
+  function drawMomentumFunnel(el) {
+    var ROWS = [
+      { name: 'Every stock you could buy', sub: 'The whole market', share: 1, token: '--muted', opacity: 0.2 },
+      { name: 'The business is strong', sub: 'Earnings and sales growing, a leader', share: 0.66, token: '--muted', opacity: 0.55 },
+      { name: 'The chart agrees', sub: 'A breakout from a base on rising volume', share: 0.4, token: '--fg', opacity: 1 },
+      { name: 'Enter, with a stop', sub: 'The stop limits the damage if wrong', share: 0.2, token: '--accent', opacity: 1 }
+    ];
+    var c = context(el), token = c.token, w = c.width, ROW = 62, out = [];
+
+    ROWS.forEach(function (r, i) {
+      var top = i * ROW, bw = w * r.share;
+      out.push(text(c, w / 2, top + 13, r.name, '--fg', 'text-anchor="middle" font-weight="700"'));
+      out.push(text(c, w / 2, top + 28, r.sub, '--muted', 'text-anchor="middle"'));
+      out.push('<rect x="' + f1((w - bw) / 2) + '" y="' + (top + 36) + '" width="' + f1(bw) + '" height="14" fill="' + token(r.token) +
+        '" fill-opacity="' + r.opacity + '"/>');
+    });
+
+    mount(el, w, ROWS.length * ROW - 8, 'Funnel: ' + ROWS.map(function (r) { return r.name + ' (' + r.sub.toLowerCase() + ')'; }).join(', then ') +
+      '. The fundamentals pick the stock, the chart picks the moment, and the stop limits the damage.', out);
+  }
+
+  // ---- Fig. 7.4: the three numbers, and what they size ----
+
+  function drawTradePlan(el) {
+    var ENTRY = 50, STOP = 47, TARGET = 59, CAPITAL = 10000, RISK = 0.01;
+    var c = context(el), token = c.token, w = c.width, wide = w >= 600, out = [];
+    var pw = wide ? (w - 40) / 2 : w;
+
+    // Left: the plan on a price scale.
+    var top = 26, PH = 190, lo = 44, hi = 62, sx = 86;
+    var y = function (p) { return top + (hi - p) / (hi - lo) * PH; };
+    out.push(text(c, 0, 13, 'The plan, written before the trade', '--fg', 'font-weight="700"'));
+    out.push('<rect x="' + sx + '" y="' + f1(y(TARGET)) + '" width="22" height="' + f1(y(ENTRY) - y(TARGET)) + '" fill="' + token('--fg') + '"/>');
+    out.push('<rect x="' + sx + '" y="' + f1(y(ENTRY)) + '" width="22" height="' + f1(y(STOP) - y(ENTRY)) + '" fill="' + token('--accent') + '"/>');
+    [[TARGET, 'Target', '--fg'], [ENTRY, 'Entry', '--fg'], [STOP, 'Stop', '--accent']].forEach(function (l) {
+      out.push('<line x1="' + (sx - 8) + '" x2="' + (sx + 30) + '" y1="' + f1(y(l[0])) + '" y2="' + f1(y(l[0])) + '" stroke="' + token(l[2]) + '" stroke-width="2"/>');
+      out.push(text(c, sx - 14, y(l[0]) + 4, l[1] + ' $' + l[0], l[2], 'text-anchor="end" font-weight="700"'));
+    });
+    out.push(text(c, sx + 40, (y(TARGET) + y(ENTRY)) / 2 + 4, 'Reward $' + (TARGET - ENTRY), '--fg'));
+    out.push(text(c, sx + 40, (y(ENTRY) + y(STOP)) / 2 + 4, 'Risk $' + (ENTRY - STOP), '--accent'));
+    out.push(text(c, sx + 40, y(STOP) + 36, rewardRisk(ENTRY, STOP, TARGET) + ' to 1: it pays', '--fg', 'font-weight="700"'));
+    out.push(text(c, sx + 40, y(STOP) + 51, 'more than it risks', '--fg', 'font-weight="700"'));
+
+    // Right: same dollars at risk, two stops. Area = shares x stop distance.
+    var ox = wide ? pw + 40 : 0, oy = wide ? 0 : top + PH + 80, budget = CAPITAL * RISK;
+    var STOPS = [{ d: 1, name: 'Tight stop, $1 below' }, { d: 5, name: 'Wide stop, $5 below' }];
+    var perShare = Math.min(1.8, (pw - 10) / 100), perDollar = 16;
+    out.push(text(c, ox, oy + 13, '1% of a ' + money(CAPITAL) + ' satellite: ' + money(budget) + ' at risk', '--fg', 'font-weight="700"'));
+    var ry = oy + 34;
+    STOPS.forEach(function (s) {
+      var shares = positionSize(CAPITAL, RISK, ENTRY, ENTRY - s.d), rw = shares * perShare, rh = s.d * perDollar;
+      out.push(text(c, ox, ry + 4, s.name + ': ' + shares + ' shares', '--fg'));
+      out.push('<rect x="' + f1(ox) + '" y="' + (ry + 12) + '" width="' + f1(rw) + '" height="' + rh + '" fill="' + token('--accent') + '"/>');
+      out.push(text(c, ox + rw + 8, ry + 12 + rh / 2 + 4, money(shares * s.d), '--fg', 'font-weight="700"'));
+      ry += rh + 44;
+    });
+    out.push(text(c, ox, ry - 16, ['Width is shares, height is the stop distance.', 'Same red area: the same ' + money(budget) + ' at risk.'], '--muted'));
+
+    mount(el, w, wide ? Math.max(top + PH + 70, ry + 18) : ry + 18, 'Two panels. A trade plan: entry $' + ENTRY + ', stop $' + STOP +
+      ', target $' + TARGET + ': risk $' + (ENTRY - STOP) + ' to make $' + (TARGET - ENTRY) + ', 3 to 1. Sizing with 1% of a $10,000 satellite, ' +
+      '$100 at risk: a $1 stop allows 100 shares, a $5 stop allows 20.', out);
+  }
+
+  // ---- Fig. 7.5: a few trades prove nothing ----
+
+  function drawRunningExpectancy(el) {
+    var c = context(el), token = c.token, w = c.width;
+    var run = runningAverage(TRADER_A), N = run.length, LONG = expectancy(0.4, 300, 100), Y_MIN = -100, Y_MAX = 150;
+    var h = Math.round(clamp(w * 0.55, 260, 380));
+    var m = { top: 26, right: 76, bottom: 30, left: 46 };
+    var x = function (i) { return m.left + (i / (N - 1)) * (w - m.left - m.right); };
+    var y = function (v) { return h - m.bottom - ((v - Y_MIN) / (Y_MAX - Y_MIN)) * (h - m.top - m.bottom); };
+    var EARLY = 10, out = [];
+
+    out.push('<rect x="' + f1(x(0)) + '" y="' + m.top + '" width="' + f1(x(EARLY - 1) - x(0)) + '" height="' + f1(h - m.top - m.bottom) +
+      '" fill="' + token('--muted') + '" fill-opacity="0.12"/>');
+    out.push(text(c, x(0) + 6, m.top + 16, w < 420 ? ['Too few', 'to judge'] : ['Too few to', 'judge'], '--muted', 'font-weight="700"'));
+    [-100, -50, 0, 50, 100, 150].forEach(function (t) {
+      out.push('<line x1="' + m.left + '" x2="' + f1(w - m.right) + '" y1="' + f1(y(t)) + '" y2="' + f1(y(t)) + '" stroke="' +
+        token(t === 0 ? '--fg' : '--muted') + '" stroke-width="' + (t === 0 ? 2 : 0.5) + '"/>');
+      out.push(text(c, m.left - 8, y(t) + 4, (t < 0 ? '&minus;$' : '$') + Math.abs(t), '--muted', 'text-anchor="end"'));
+    });
+    [1, 10, 20, 30, 40, 50].forEach(function (t) {
+      if (w < 420 && (t === 10 || t === 30)) return;
+      out.push(text(c, x(t - 1), h - 8, t === 1 ? 'Trade 1' : String(t), '--muted', 'text-anchor="' + (t === 1 ? 'start' : 'middle') + '"'));
+    });
+    out.push('<line x1="' + m.left + '" x2="' + f1(w - m.right) + '" y1="' + f1(y(LONG)) + '" y2="' + f1(y(LONG)) + '" stroke="' +
+      token('--fg') + '" stroke-width="1.5" stroke-dasharray="5 4"/>');
+    out.push(text(c, w - m.right + 8, y(LONG) + 4, ['Long run:', '+$' + LONG], '--fg', 'font-weight="700"'));
+    out.push(polyline(run.map(function (v, i) { return f1(x(i)) + ',' + f1(y(Math.max(Y_MIN, Math.min(Y_MAX, v)))); }), token('--fg'), 2.5));
+    run.forEach(function (v, i) {
+      if (v < 0) out.push('<circle cx="' + f1(x(i)) + '" cy="' + f1(y(v)) + '" r="3" fill="' + token('--accent') + '"/>');
+    });
+    out.push(text(c, m.left, 14, 'Average per trade, so far', '--fg', 'font-weight="700"'));
+
+    mount(el, w, h, 'Line chart of Trader A’s average result per trade, after each of 50 trades. After 5 trades it is minus $20; ' +
+      'it swings early, then settles at plus $60, the long-run expectancy. Points below zero are marked.', out);
+  }
+
   // ---- Fig. 5.1: the Ladder ----
   // Rungs from Level 1 at the bottom to Level 4 at the top, each with its strategy chips,
   // timing, and gate. Systematic runs alongside all four.
@@ -1468,6 +1668,8 @@
     fees: drawFees, pie: drawPie, 'dividend-loop': drawDividendLoop, 'dividend-income': drawDividendIncome,
     drift: drawDrift, 'core-default': drawCoreDefault,
     hedge: drawHedge,
+    'attention-month': drawAttentionMonth, setups: drawSetups, 'momentum-funnel': drawMomentumFunnel,
+    'trade-plan': drawTradePlan, 'running-expectancy': drawRunningExpectancy,
     ladder: drawLadder, promotion: drawPromotion, 'time-decay': drawTimeDecay, tuition: drawTuition, neglect: drawNeglect,
     tags: drawTags, 'menu-grid': drawMenuGrid, 'loss-shape': drawLossShape, 'effort-shapes': drawEffortShapes,
     groups: drawGroups, attention: drawAttention,
@@ -1482,7 +1684,7 @@
     module.exports = {
       grow: grow, breakeven: breakeven, futureValue: futureValue, drift: drift,
       mostUnderweight: mostUnderweight, dividendIncome: dividendIncome, pie: PIE,
-      hedgedValue: hedgedValue, timeValueLeft: timeValueLeft, promoted: promoted,
+      hedgedValue: hedgedValue, rewardRisk: rewardRisk, positionSize: positionSize, runningAverage: runningAverage, traderA: TRADER_A, timeValueLeft: timeValueLeft, promoted: promoted,
       strategies: STRATEGIES, attentionShare: attentionShare, concentrationHit: concentrationHit,
       expectancy: expectancy, breakevenPayoff: breakevenPayoff, netAfterCosts: netAfterCosts, traderB: TRADER_B,
       roundTrip: roundTrip, lossPath: lossPath,

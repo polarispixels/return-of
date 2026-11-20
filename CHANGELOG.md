@@ -4,6 +4,15 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-11-20
+
+Chapter 13 gets a figure for every section.
+
+### Added
+
+- Chapter 13, Own the Process, Rent the Tools: four figures. Fig. 13.1, strategy first and tool second, with the backwards order crossed out. Fig. 13.2, where each tool dimension matters most, marking only what the text states. Fig. 13.3, what is yours and what is rented, joined by a CSV export. Fig. 13.4, how many platforms are built for each strategy, counted live from the fit matrix on the page.
+- A deploy check that the column counts match the matrix data.
+
 ## [0.18.0] - 2026-11-20
 
 Chapter 12 gets a figure for every section.

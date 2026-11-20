@@ -55,6 +55,12 @@
     ['Systematic', 'Depends on rules', 'High upfront, low ongoing', 'systematic']
   ].map(function (r, i) { return { num: i + 1, name: r[0], risk: r[1], effort: r[2], group: r[3] }; });
 
+  // For each strategy (column), how many platforms score 3, "built for it". `rows` is one
+  // array of scores per platform.
+  function builtForCounts(rows) {
+    return rows[0].map(function (_, j) { return rows.filter(function (r) { return r[j] === 3; }).length; });
+  }
+
   // A result as a multiple of the dollars put at risk (an "R").
   function rMultiple(result, risk) { return result / risk; }
 
@@ -1105,6 +1111,118 @@
 
     mount(el, w, 294, 'Flowchart: every dollar starts in the core. A small satellite tests a method. The journal measures ' +
       'expectancy and adherence. If it shows an edge, the satellite may grow within the rules. If not, the money goes back to the core.', out);
+  }
+
+  // ---- Fig. 13.1: strategy first, tool second ----
+
+  function drawToolOrder(el) {
+    var c = context(el), token = c.token, w = c.width, narrow = w < 480, out = [];
+    var gap = narrow ? 8 : 34, bw = (w - 2 * gap) / 3;
+
+    function row(y, labels, opts, crossed) {
+      labels.forEach(function (l, i) {
+        var x = i * (bw + gap);
+        out.push(box(c, x, y, bw, l, opts[i]));
+        if (i < 2) out.push(arrow(x + bw + 2, y + 25, x + bw + gap - 2, y + 25, token(crossed ? '--accent' : '--fg')));
+      });
+    }
+    out.push(text(c, 0, 14, 'The right order', '--fg', 'font-weight="700"'));
+    row(24, [['Strategy'], ['Rules'], ['Tool']],
+      [{ fill: '--fg' }, { fill: '--fg' }, { stroke: '--accent-2' }]);
+    out.push(text(c, 0, 102, 'Backwards', '--accent', 'font-weight="700"'));
+    row(112, narrow ? [['Open an', 'account'], ['Features', 'nudge you'], ['A strategy', 'by accident']]
+      : [['Open an account'], ['Its features nudge you'], ['A strategy by accident']], [{ stroke: '--accent' }, { stroke: '--accent' }, { stroke: '--accent' }], true);
+    var y = 137;
+    out.push('<line x1="0" x2="' + f1(w) + '" y1="' + y + '" y2="' + y + '" stroke="' + token('--accent') + '" stroke-width="2.5" stroke-opacity="0.8"/>');
+
+    mount(el, w, narrow ? 168 : 158, 'Two rows. The right order: strategy, then rules, then the tool. Backwards, crossed out: open an account, ' +
+      'let its features nudge you, and end up with a strategy by accident.', out);
+  }
+
+  // ---- Fig. 13.2: where the text says each dimension matters most ----
+
+  function drawDimensions(el) {
+    var COLS = ['Core', 'Swing', 'Journal, Systematic'];
+    var ROWS = [['Cost', []], ['What you can trade', []], ['Portfolio construction', [0]], ['Research and analysis', []],
+      ['Execution', [1]], ['Automation', [2]], ['Accounts and taxes', []], ['Trust', [0, 1, 2]]];
+    var c = context(el), token = c.token, w = c.width, narrow = w < 420, out = [];
+    var left = narrow ? 130 : 190, col = Math.min(110, (w - left) / COLS.length), ROW = 26, top = narrow ? 40 : 30;
+
+    COLS.forEach(function (name, j) {
+      var cx = left + col * (j + 0.5);
+      if (narrow && j === 2) out.push(text(c, w - 1, 14, ['Journal,', 'Systematic'], '--fg', 'text-anchor="end" font-weight="700"'));
+      else out.push(text(c, cx, narrow ? 14 : 18, name, '--fg', 'text-anchor="middle" font-weight="700"'));
+    });
+    ROWS.forEach(function (r, i) {
+      var y = top + i * ROW;
+      out.push('<line x1="0" x2="' + f1(left + col * COLS.length) + '" y1="' + (y + ROW) + '" y2="' + (y + ROW) + '" stroke="' + token('--muted') + '" stroke-width="0.5"/>');
+      out.push(text(c, 0, y + 17, r[0], '--fg', (r[1].length ? 'font-weight="700"' : '') + (narrow ? ' font-size="11"' : '')));
+      COLS.forEach(function (_, j) {
+        var on = r[1].indexOf(j) >= 0, cx = left + col * (j + 0.5);
+        out.push('<circle cx="' + f1(cx) + '" cy="' + (y + 13) + '" r="' + (on ? 7 : 3) + '" fill="' + token(on ? (r[0] === 'Trust' ? '--accent' : '--accent-2') : '--muted') +
+          '"' + (on ? '' : ' fill-opacity="0.35"') + '/>');
+      });
+    });
+
+    mount(el, w, top + ROWS.length * ROW + 4, 'Grid of the eight tool dimensions against three uses. Large dots mark where the text says a dimension ' +
+      'matters most: portfolio construction for the core, execution for swing trading, automation for the journal and systematic work, ' +
+      'and trust for all three.', out);
+  }
+
+  // ---- Fig. 13.3: yours, and rented ----
+
+  function drawPortable(el) {
+    var c = context(el), token = c.token, w = c.width, wide = w >= 560, out = [];
+    var bw = wide ? (w - 90) / 2 : w;
+
+    out.push(text(c, 0, 14, 'Yours: kept in files you control', '--fg', 'font-weight="700"'));
+    out.push(box(c, 0, 24, bw, ['Rules', 'Investment Policy Statement'], { fill: '--fg' }));
+    out.push(box(c, 0, 84, bw, ['History', 'the journal'], { fill: '--fg' }));
+    var rx = wide ? bw + 90 : 0, ry = wide ? 0 : 196;
+    out.push(text(c, rx, ry + 14, 'Rented: replaceable', '--fg', 'font-weight="700"'));
+    out.push(box(c, rx, ry + 24, bw, ['Platform A', 'orders and positions'], { stroke: '--accent-2' }));
+    out.push('<rect x="' + f1(rx + 1) + '" y="' + (ry + 85) + '" width="' + f1(bw - 2) + '" height="48" fill="none" stroke="' + token('--accent-2') +
+      '" stroke-width="1.5" stroke-dasharray="5 4"/>');
+    out.push(text(c, rx + bw / 2, ry + 114, 'Platform B, any time', '--accent-2', 'text-anchor="middle" font-weight="700"'));
+    // CSV export: from the platform into the journal.
+    if (wide) {
+      out.push(arrow(rx - 4, 49, bw + 6, 109, token('--accent-2')));
+      out.push(text(c, bw + 45, 70, 'CSV export', '--accent-2', 'text-anchor="middle" font-weight="700"'));
+    } else {
+      out.push(arrow(w * 0.7, ry + 22, w * 0.7, 136, token('--accent-2')));
+      out.push(text(c, w * 0.7 + 8, ry - 20, 'CSV export', '--accent-2', 'font-weight="700"'));
+    }
+
+    mount(el, w, wide ? 140 : ry + 140, 'Diagram. Yours, in files you control: the rules in the Investment Policy Statement and the history in ' +
+      'the journal. Rented and replaceable: platform A, holding orders and positions, with platform B able to take its place. A CSV export ' +
+      'carries trades from the platform into the journal.', out);
+  }
+
+  // ---- Fig. 13.4: built for it, column by column ----
+  // Reads the fit matrix on the same page, so it always matches the table.
+
+  function drawFitColumns(el) {
+    var table = el.ownerDocument.querySelector('table[data-matrix]');
+    if (!table) return;
+    var names = [].map.call(table.querySelectorAll('th.matrix-strategy span'), function (s) { return s.textContent; });
+    var rows = [].map.call(table.querySelectorAll('tbody tr'), function (tr) {
+      return [].map.call(tr.querySelectorAll('td.matrix-score'), function (td) { return Number(td.getAttribute('data-score')); });
+    }).filter(function (r) { return r.length === names.length; });
+    var counts = builtForCounts(rows), total = rows.length;
+    var c = context(el), token = c.token, w = c.width, left = w < 420 ? 120 : 150, ROW = 26, top = 24, out = [];
+    var len = function (v) { return (v / total) * (w - left - 40); };
+
+    out.push(text(c, 0, 14, 'Platforms scored 3, built for it, out of ' + total, '--fg', 'font-weight="700"'));
+    names.forEach(function (n, j) {
+      var y = top + j * ROW;
+      out.push(text(c, left - 10, y + 16, n, '--fg', 'text-anchor="end"'));
+      out.push('<rect x="' + left + '" y="' + (y + 6) + '" width="' + f1(len(total)) + '" height="12" fill="' + token('--muted') + '" fill-opacity="0.12"/>');
+      out.push('<rect x="' + left + '" y="' + (y + 6) + '" width="' + f1(Math.max(2, len(counts[j]))) + '" height="12" fill="' + token('--accent-2') + '"/>');
+      out.push(text(c, left + len(counts[j]) + 6, y + 16, String(counts[j]), '--fg', 'font-weight="700"'));
+    });
+
+    mount(el, w, top + names.length * ROW + 4, 'Bar chart from the fit matrix: for each strategy, how many of the ' + total + ' platforms score 3. ' +
+      names.map(function (n, j) { return n + ': ' + counts[j]; }).join(', ') + '.', out);
   }
 
   // ---- Fig. 12.1: thirty minutes out of a day ----
@@ -2537,6 +2655,7 @@
     fees: drawFees, pie: drawPie, 'dividend-loop': drawDividendLoop, 'dividend-income': drawDividendIncome,
     drift: drawDrift, 'core-default': drawCoreDefault,
     hedge: drawHedge,
+    'tool-order': drawToolOrder, dimensions: drawDimensions, portable: drawPortable, 'fit-columns': drawFitColumns,
     'day-ring': drawDayRing, checklist: drawChecklist, 'journal-entry': drawJournalEntry, 'journal-math': drawJournalMath,
     watched: drawWatched,
     'calm-check': drawCalmCheck, traps: drawTraps, revenge: drawRevenge, restraint: drawRestraint, adherence: drawAdherence,
@@ -2562,7 +2681,7 @@
     module.exports = {
       grow: grow, breakeven: breakeven, futureValue: futureValue, drift: drift,
       mostUnderweight: mostUnderweight, dividendIncome: dividendIncome, pie: PIE,
-      hedgedValue: hedgedValue, rMultiple: rMultiple, journalRows: JOURNAL_ROWS, sizedPath: sizedPath, adherence: adherence, streakLeft: streakLeft, sizedTrades: SIZED, longCallPL: longCallPL, tuitionPath: tuitionPath, coveredCallPL: coveredCallPL, shortPutPL: shortPutPL, wheel: WHEEL, rewardRisk: rewardRisk, positionSize: positionSize, runningAverage: runningAverage, traderA: TRADER_A, timeValueLeft: timeValueLeft, promoted: promoted,
+      hedgedValue: hedgedValue, builtForCounts: builtForCounts, rMultiple: rMultiple, journalRows: JOURNAL_ROWS, sizedPath: sizedPath, adherence: adherence, streakLeft: streakLeft, sizedTrades: SIZED, longCallPL: longCallPL, tuitionPath: tuitionPath, coveredCallPL: coveredCallPL, shortPutPL: shortPutPL, wheel: WHEEL, rewardRisk: rewardRisk, positionSize: positionSize, runningAverage: runningAverage, traderA: TRADER_A, timeValueLeft: timeValueLeft, promoted: promoted,
       strategies: STRATEGIES, attentionShare: attentionShare, concentrationHit: concentrationHit,
       expectancy: expectancy, breakevenPayoff: breakevenPayoff, netAfterCosts: netAfterCosts, traderB: TRADER_B,
       roundTrip: roundTrip, lossPath: lossPath,

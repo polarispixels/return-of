@@ -111,6 +111,17 @@ if (typeof chart.grow !== 'function' || typeof chart.breakeven !== 'function' ||
     if (chart.lossPath(10000, 0.07, 30, 10, 0.5).toFixed(0) !== '38061') fail('chart.lossPath: Fig. 1.3 ends at $38,061 with the fall');
     if (chart.lossPath(10000, 0.07, 30, 99, 0.5).toFixed(0) !== '76123') fail('chart.lossPath: Fig. 1.3 ends at $76,123 without it');
   }
+  // Chapter 13 figures: the column counts come from the matrix data.
+  if (typeof chart.builtForCounts !== 'function') fail('js/chart.js: must export builtForCounts');
+  else {
+    const fitData = JSON.parse(read('content/data/platform-fit.json'));
+    const counts = chart.builtForCounts(fitData.platforms.map((p) => p.scores));
+    if (counts.length !== fitData.strategies.length) fail('chart.builtForCounts: one count per strategy');
+    fitData.strategies.forEach((st, j) => {
+      const expect = fitData.platforms.filter((p) => p.scores[j] === 3).length;
+      if (counts[j] !== expect) fail(`chart.builtForCounts: ${st.name} should have ${expect} platforms scored 3`);
+    });
+  }
   // Chapter 12 figures.
   if (typeof chart.rMultiple !== 'function' || !Array.isArray(chart.journalRows)) fail('js/chart.js: must export rMultiple and journalRows');
   else {

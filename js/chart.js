@@ -43,6 +43,15 @@
     return { cash: cash, reinvested: cash * Math.pow(1 + yieldRate, year - 1) };
   }
 
+  // What is left of 1 after a gain of `p` and then a loss of `p` (either order).
+  function roundTrip(p) { return (1 + p) * (1 - p); }
+
+  // Value in `year` of `start` growing at `rate`, with one fall of `loss` at `lossYear`
+  // (the fall lands at the start of that year, so the year's value is already cut).
+  function lossPath(start, rate, year, lossYear, loss) {
+    return start * Math.pow(1 + rate, year) * (year >= lossYear ? 1 - loss : 1);
+  }
+
   // Years to get back to even after falling by the fraction `loss`, growing at `rate` a year.
   function recoveryYears(loss, rate) { return Math.log(1 / (1 - loss)) / Math.log(1 + rate); }
 
@@ -615,12 +624,205 @@
       }).join('. ') + '.', out);
   }
 
+  // ---- Chart frame: horizontal gridlines with labels (shared by the line charts below) ----
+
+  function hGrid(c, out, m, w, y, ticks, label) {
+    ticks.forEach(function (t, i) {
+      out.push('<line x1="' + m.left + '" x2="' + f1(w - m.right) + '" y1="' + f1(y(t)) + '" y2="' + f1(y(t)) + '" stroke="' +
+        c.token(i === 0 ? '--fg' : '--muted') + '" stroke-width="' + (i === 0 ? 2 : 0.5) + '"/>');
+      out.push(text(c, m.left - 8, y(t) + 4, label(t), '--muted', 'text-anchor="end"'));
+    });
+  }
+
+  // Spread label positions (y values) so no two sit closer than `gap`, keeping their order.
+  function spread(ys, gap) {
+    var order = ys.map(function (v, i) { return i; }).sort(function (a, b) { return ys[a] - ys[b]; });
+    var out = ys.slice();
+    for (var k = 1; k < order.length; k++) {
+      if (out[order[k]] - out[order[k - 1]] < gap) out[order[k]] = out[order[k - 1]] + gap;
+    }
+    return out;
+  }
+
+  function polyline(points, color, width, extra) {
+    return '<polyline fill="none" stroke="' + color + '" stroke-width="' + width + '" stroke-linejoin="round"' +
+      (extra ? ' ' + extra : '') + ' points="' + points.join(' ') + '"/>';
+  }
+
+  // ---- Fig. 1.1: equal ups and downs do not cancel ----
+
+  function drawRoundTrip(el) {
+    var SERIES = [{ p: 0.1, token: '--muted', width: 1.5 }, { p: 0.25, token: '--fg', width: 2 }, { p: 0.5, token: '--accent', width: 3 }];
+    var STEPS = ['Start', 'After the gain', 'After the loss'], Y_MIN = 60, Y_MAX = 160;
+    var c = context(el), token = c.token, w = c.width;
+    var h = Math.round(clamp(w * 0.55, 260, 380));
+    var m = { top: 14, right: 96, bottom: 30, left: 46 };
+    var x = function (i) { return m.left + 8 + i * (w - m.left - m.right - 16) / 2; };
+    var y = function (v) { return h - m.bottom - ((v - Y_MIN) / (Y_MAX - Y_MIN)) * (h - m.top - m.bottom); };
+    var out = [];
+
+    hGrid(c, out, m, w, y, [60, 80, 100, 120, 140, 160], function (t) { return '$' + t; });
+    out.push('<line x1="' + m.left + '" x2="' + f1(w - m.right) + '" y1="' + f1(y(100)) + '" y2="' + f1(y(100)) + '" stroke="' +
+      token('--fg') + '" stroke-width="1.5" stroke-dasharray="5 4"/>');
+    STEPS.forEach(function (s, i) {
+      out.push(text(c, x(i), h - 8, w < 420 && i === 1 ? 'Gain' : w < 420 && i === 2 ? 'Loss' : s, '--muted',
+        'text-anchor="' + (i === 0 ? 'start' : i === 2 ? 'end' : 'middle') + '"'));
+    });
+    var labelY = spread(SERIES.map(function (s) { return y(100 * roundTrip(s.p)) + 4; }), 16);
+    SERIES.forEach(function (s, k) {
+      var vals = [100, 100 * (1 + s.p), 100 * roundTrip(s.p)], color = token(s.token);
+      out.push(polyline(vals.map(function (v, i) { return f1(x(i)) + ',' + f1(y(v)); }), color, s.width));
+      vals.forEach(function (v, i) { out.push('<circle cx="' + f1(x(i)) + '" cy="' + f1(y(v)) + '" r="3.5" fill="' + color + '"/>'); });
+      out.push(text(c, x(2) + 10, labelY[k], '&plusmn;' + Math.round(s.p * 100) + '%: <tspan font-weight="700">$' +
+        (Math.round(vals[2] * 100) / 100).toFixed(Math.round(vals[2] * 100) % 100 ? 2 : 0) + '</tspan>', '--fg'));
+    });
+
+    mount(el, w, h, 'Slope chart: $100 rises and then falls by the same percentage. Up and down 10% leaves $99; ' +
+      '25% leaves $93.75; 50% leaves $75. The dashed line is the $100 start.', out);
+  }
+
+  // ---- Fig. 1.2: the gain needed, as a curve ----
+
+  function drawBreakevenCurve(el) {
+    var MARKS = [0.1, 0.25, 0.5, 0.75, 0.9], Y_MAX = 9, X_MAX = 0.9;
+    var c = context(el), token = c.token, w = c.width;
+    var h = Math.round(clamp(w * 0.6, 280, 420));
+    var m = { top: 22, right: 20, bottom: 30, left: 50 };
+    var x = function (l) { return m.left + (l / X_MAX) * (w - m.left - m.right); };
+    var y = function (g) { return h - m.bottom - (g / Y_MAX) * (h - m.top - m.bottom); };
+    var pct = function (v) { return Math.round(v * 100) + '%'; };
+    var out = [], curve = [], narrow = w < 420;
+
+    hGrid(c, out, m, w, y, [0, 3, 6, 9], function (t) { return pct(t); });
+    (narrow ? [0, 0.5, 0.9] : [0, 0.25, 0.5, 0.75, 0.9]).forEach(function (t) {
+      out.push(text(c, x(t), h - 8, t === 0 ? 'Loss 0%' : pct(t), '--muted', 'text-anchor="' + (t === 0 ? 'start' : t === 0.9 ? 'end' : 'middle') + '"'));
+    });
+    // Where the curve would be if a loss and an equal gain cancelled.
+    out.push('<line x1="' + f1(x(0)) + '" y1="' + f1(y(0)) + '" x2="' + f1(x(X_MAX)) + '" y2="' + f1(y(X_MAX)) + '" stroke="' +
+      token('--fg') + '" stroke-width="1.5" stroke-dasharray="5 4"/>');
+    if (!narrow) out.push(text(c, x(X_MAX), y(X_MAX) + 16, 'If they cancelled', '--muted', 'text-anchor="end"'));
+    for (var l = 0; l <= X_MAX + 1e-9; l += 0.01) curve.push(f1(x(l)) + ',' + f1(y(breakeven(l))));
+    out.push(polyline(curve, token('--accent'), 3));
+    MARKS.forEach(function (l) {
+      var g = breakeven(l);
+      if (narrow && l < 0.5) { out.push('<circle cx="' + f1(x(l)) + '" cy="' + f1(y(g)) + '" r="4" fill="' + token('--accent') + '"/>'); return; }
+      out.push('<circle cx="' + f1(x(l)) + '" cy="' + f1(y(g)) + '" r="4" fill="' + token('--accent') + '"/>');
+      out.push(text(c, x(l) - 8, y(g) - 6, '+' + pct(g), '--fg', 'text-anchor="end" font-weight="700"'));
+    });
+    if (!narrow) out.push(text(c, m.left + 6, m.top - 8, 'Gain needed to get back to even', '--fg', 'font-weight="700"'));
+
+    mount(el, w, h, 'Line chart: the gain needed to get back to even rises slowly and then turns vertical. ' +
+      MARKS.map(function (l) { return 'Lose ' + pct(l) + ', need ' + pct(breakeven(l)); }).join('. ') +
+      '. A dashed line shows where it would be if equal gains and losses cancelled.', out);
+  }
+
+  // ---- Fig. 1.3: one deep fall resets the clock ----
+
+  function drawSurvivors(el) {
+    var START = 10000, RATE = 0.07, YEARS = 30, FALL_YEAR = 10, FALL = 0.5, Y_MAX = 80000;
+    var c = context(el), token = c.token, w = c.width;
+    var h = Math.round(clamp(w * 0.58, 280, 420));
+    var m = { top: 40, right: 96, bottom: 30, left: 46 };
+    var x = function (yr) { return m.left + (yr / YEARS) * (w - m.left - m.right); };
+    var y = function (v) { return h - m.bottom - (v / Y_MAX) * (h - m.top - m.bottom); };
+    var steady = [], fell = [], out = [];
+
+    hGrid(c, out, m, w, y, [0, 20000, 40000, 60000, 80000], function (t) { return t === 0 ? '$0' : '$' + t / 1000 + 'k'; });
+    var narrow = w < 420;
+    [0, 10, 20, 30].forEach(function (t) {
+      out.push(text(c, x(t), h - 8, t === 0 && !narrow ? 'Year 0' : String(t), '--muted', 'text-anchor="' + (t === 0 ? 'start' : 'middle') + '"'));
+    });
+    for (var yr = 0; yr <= YEARS; yr++) {
+      steady.push(f1(x(yr)) + ',' + f1(y(lossPath(START, RATE, yr, YEARS + 1, 0))));
+      if (yr === FALL_YEAR) fell.push(f1(x(yr)) + ',' + f1(y(lossPath(START, RATE, yr, YEARS + 1, 0))));
+      fell.push(f1(x(yr)) + ',' + f1(y(lossPath(START, RATE, yr, FALL_YEAR, FALL))));
+    }
+    out.push(polyline(steady, token('--fg'), 2));
+    out.push(polyline(fell, token('--accent'), 3));
+
+    // Where the fallen path gets back to its pre-fall peak.
+    var peak = lossPath(START, RATE, FALL_YEAR, YEARS + 1, 0), back = FALL_YEAR + recoveryYears(FALL, RATE);
+    out.push('<line x1="' + f1(x(FALL_YEAR)) + '" x2="' + f1(x(back)) + '" y1="' + f1(y(peak)) + '" y2="' + f1(y(peak)) + '" stroke="' +
+      token('--muted') + '" stroke-width="1.5" stroke-dasharray="3 3"/>');
+    out.push('<circle cx="' + f1(x(back)) + '" cy="' + f1(y(peak)) + '" r="4" fill="' + token('--accent') + '"/>');
+    out.push(text(c, x(back) + 8, y(peak) + 16, ['Back to even', 'in year ' + back.toFixed(0)], '--fg'));
+    out.push(text(c, x(FALL_YEAR) + 6, y(peak / 2) + 16, '&minus;50%' + (narrow ? '' : ' in year ' + FALL_YEAR), '--fg', 'font-weight="700"'));
+
+    [{ v: lossPath(START, RATE, YEARS, YEARS + 1, 0), name: 'No fall', token: '--fg' },
+      { v: lossPath(START, RATE, YEARS, FALL_YEAR, FALL), name: 'One fall', token: '--accent' }].forEach(function (s) {
+      out.push('<circle cx="' + f1(x(YEARS)) + '" cy="' + f1(y(s.v)) + '" r="3.5" fill="' + token(s.token) + '"/>');
+      out.push(text(c, x(YEARS) + 10, y(s.v) - 2, s.name, '--fg', 'font-weight="700"'));
+      out.push(text(c, x(YEARS) + 10, y(s.v) + 13, money(s.v), '--muted'));
+    });
+    out.push(text(c, m.left, 14, 'Same 7% every year, except one', '--fg', 'font-weight="700"'));
+
+    mount(el, w, h, 'Line chart: $10,000 growing at an assumed 7% a year for 30 years ends at ' +
+      money(lossPath(START, RATE, YEARS, YEARS + 1, 0)) + '. With one 50% fall in year 10 it ends at ' +
+      money(lossPath(START, RATE, YEARS, FALL_YEAR, FALL)) + ', and only gets back to its year 10 value in year ' +
+      back.toFixed(0) + '.', out);
+  }
+
+  // ---- Fig. 1.4: each habit stops one way to lose big ----
+
+  function drawHabits(el) {
+    var ROWS = [
+      { threat: 'One holding grows big enough to hurt', habit: ['Position limits'] },
+      { threat: 'One mistake keeps running', habit: ['Stops'] },
+      { threat: 'A bill forces a sale at a bad price', habit: ['Cash for', 'known needs'] },
+      { threat: 'Money drifts while you look away', habit: ['A passive', 'default'] }
+    ];
+    var c = context(el), token = c.token, w = c.width;
+    var ROW = 64, wall = Math.round(clamp(w * 0.55, 150, 420)), out = [];
+
+    ROWS.forEach(function (r, i) {
+      var top = i * ROW, ay = top + 34;
+      out.push(text(c, 0, top + 14, r.threat, '--fg'));
+      out.push(arrow(0, ay, wall - 2, ay, token('--accent')));
+      out.push('<rect x="' + wall + '" y="' + (ay - 14) + '" width="8" height="28" fill="' + token('--fg') + '"/>');
+      out.push(text(c, wall + 18, ay + (r.habit.length > 1 ? -3 : 5), r.habit, '--fg', 'font-weight="700"'));
+    });
+
+    mount(el, w, ROWS.length * ROW, 'Diagram: four threats, each stopped by a habit. ' +
+      ROWS.map(function (r) { return r.threat + ': stopped by ' + r.habit.join(' ').toLowerCase(); }).join('. ') + '.', out);
+  }
+
+  // ---- Fig. 1.5: the order of questions ----
+
+  function drawQuestions(el) {
+    var c = context(el), token = c.token, w = c.width;
+    var bw = Math.min(360, w), x0 = (w - bw) / 2, cx = w / 2, BH = 40, out = [];
+    var half = (bw - 12) / 2, lx = x0 + half / 2, rx = x0 + half + 12 + half / 2;
+
+    function box(x, y, bwid, lines, filled, stroke) {
+      out.push('<rect x="' + f1(x) + '" y="' + y + '" width="' + f1(bwid) + '" height="' + (lines.length > 1 ? 50 : BH) + '" fill="' +
+        (filled ? token('--fg') : 'none') + '" stroke="' + token(stroke || '--fg') + '" stroke-width="2"/>');
+      out.push(text(c, x + bwid / 2, y + (lines.length > 1 ? 21 : 25), lines, filled ? '--bg' : '--fg', 'text-anchor="middle" font-weight="700"'));
+    }
+
+    box(x0, 0, bw, ['1. How much could it lose?']);
+    out.push(arrow(cx, BH + 2, cx, 62, token('--fg')));
+    box(x0, 64, bw, ['2. Could you live with that?']);
+    out.push('<path d="M' + f1(cx) + ',' + (64 + BH + 2) + ' V122 M' + f1(lx) + ',122 H' + f1(rx) + '" fill="none" stroke="' +
+      token('--fg') + '" stroke-width="2"/>');
+    out.push(arrow(lx, 121, lx, 148, token('--fg')));
+    out.push(arrow(rx, 121, rx, 148, token('--accent')));
+    out.push(text(c, lx + 8, 140, 'Yes', '--fg', 'font-weight="700"'));
+    out.push(text(c, rx + 8, 140, 'No', '--accent', 'font-weight="700"'));
+    box(x0, 150, half, ['3. Now ask what', 'it could make'], true);
+    box(x0 + half + 12, 150, half, ['Smaller size, or', 'not ready yet'], false, '--accent');
+
+    mount(el, w, 202, 'Flowchart: first ask how much a position could lose. Then ask whether you could live with that. ' +
+      'If yes, ask what it could make. If no, make it smaller or wait until the idea is ready.', out);
+  }
+
   // ---- Registry and wiring ----
 
   var CHARTS = {
     compound: drawCompound, breakeven: drawBreakeven,
     fees: drawFees, pie: drawPie, 'dividend-loop': drawDividendLoop, 'dividend-income': drawDividendIncome,
     drift: drawDrift, 'core-default': drawCoreDefault,
+    'round-trip': drawRoundTrip, 'breakeven-curve': drawBreakevenCurve, survivors: drawSurvivors, habits: drawHabits,
+    questions: drawQuestions,
     recovery: drawRecovery, buckets: drawBuckets, cushion: drawCushion, 'satellite-cap': drawSatelliteCap
   };
 
@@ -628,6 +830,7 @@
     module.exports = {
       grow: grow, breakeven: breakeven, futureValue: futureValue, drift: drift,
       mostUnderweight: mostUnderweight, dividendIncome: dividendIncome, pie: PIE,
+      roundTrip: roundTrip, lossPath: lossPath,
       recoveryYears: recoveryYears, forcedSale: forcedSale, portfolioHit: portfolioHit, charts: Object.keys(CHARTS)
     };
   }

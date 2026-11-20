@@ -4,6 +4,16 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-20
+
+Chapter 1 gets a figure for every section.
+
+### Added
+
+- Chapter 1, Return of Capital: five figures. Fig. 1.1, equal ups and downs do not cancel. Fig. 1.2, the gain-needed curve behind the table, against the line most people assume. Fig. 1.3, one 50% fall in year 10 resets the clock on 30 years of compounding. Fig. 1.4, each habit stops one way to lose big. Fig. 1.5, the order of questions.
+- Kit pieces: a horizontal grid, a polyline, and label spreading so end labels never overlap. Charts drop ticks and labels on narrow screens.
+- Deploy checks for the new arithmetic: the round trip and a growth path with one fall.
+
 ## [0.6.0] - 2026-11-20
 
 Chapter 2 gets a figure for every section.

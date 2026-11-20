@@ -97,6 +97,18 @@ if (typeof chart.grow !== 'function' || typeof chart.breakeven !== 'function' ||
     const p = chart.pie;
     if (!p || p.target.reduce((a, b) => a + b, 0) !== 100 || p.now.reduce((a, b) => a + b, 0) !== 100) fail('chart.pie: target and now must each sum to 100');
   }
+  // Chapter 1 figures.
+  if (typeof chart.roundTrip !== 'function') fail('js/chart.js: must export roundTrip');
+  else {
+    if (!near(chart.roundTrip(0.1), 0.99)) fail('chart.roundTrip: up 10% then down 10% leaves 0.99');
+    if (!near(chart.roundTrip(0.5), 0.75)) fail('chart.roundTrip: up 50% then down 50% leaves 0.75');
+  }
+  if (typeof chart.lossPath !== 'function') fail('js/chart.js: must export lossPath');
+  else {
+    if (!near(chart.lossPath(10000, 0.07, 9, 10, 0.5), 10000 * Math.pow(1.07, 9))) fail('chart.lossPath: before the fall it compounds untouched');
+    if (chart.lossPath(10000, 0.07, 30, 10, 0.5).toFixed(0) !== '38061') fail('chart.lossPath: Fig. 1.3 ends at $38,061 with the fall');
+    if (chart.lossPath(10000, 0.07, 30, 99, 0.5).toFixed(0) !== '76123') fail('chart.lossPath: Fig. 1.3 ends at $76,123 without it');
+  }
   // Chapter 2 figures.
   if (typeof chart.recoveryYears !== 'function') fail('js/chart.js: must export recoveryYears');
   else {

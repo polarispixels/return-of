@@ -4,6 +4,18 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-20
+
+Chapter 6 gets a figure for every section: the first pass at a visual language for the book.
+
+### Added
+
+- Chapter 6, The Core: five figures. Fig. 6.1, what a fee costs over 30 years. Fig. 6.2, a pie filling its own gaps. Fig. 6.3, the dividend reinvestment loop and the income it adds. Fig. 6.4, drift against a rebalancing band. Fig. 6.5, why the core is where the money rests.
+- Diagrams, alongside charts, in `js/chart.js`: shared pieces for text, arrows, and donuts, all drawn from theme tokens.
+- One example pie (60/30/10, drifted to 67/24/9) shared by Figs. 6.2 and 6.4.
+- Deploy checks for the new arithmetic: deposits with a fee, drift, the most underweight holding, and dividend income.
+- Docs: charts and diagrams, and two decisions.
+
 ## [0.4.0] - 2026-11-19
 
 The platform fit matrix, and a line between public and private.

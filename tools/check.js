@@ -81,6 +81,28 @@ if (typeof chart.grow !== 'function' || typeof chart.breakeven !== 'function' ||
   if (!near(chart.breakeven(0.5), 1)) fail('chart.breakeven: a 50% loss needs a 100% gain');
   if (!near(chart.breakeven(0.9), 9)) fail('chart.breakeven: a 90% loss needs a 900% gain');
   if (!near(chart.breakeven(0.1), 1 / 9)) fail('chart.breakeven: a 10% loss needs an 11.1% gain');
+  // Chapter 6 figures.
+  if (typeof chart.futureValue !== 'function') fail('js/chart.js: must export futureValue');
+  else {
+    if (!near(chart.futureValue(100, 0, 0, 12), 1200)) fail('chart.futureValue: with no growth, 12 deposits of $100 are $1,200');
+    if (!near(chart.futureValue(100, 0.12, 0, 2), 201)) fail('chart.futureValue: $100 at 1% a month for 2 months is $201');
+    if (chart.futureValue(500, 0.07, 0.0003, 360).toFixed(0) !== '606387') fail('chart.futureValue: Fig. 6.1 low-fee end should be $606,387');
+    if (chart.futureValue(500, 0.07, 0.01, 360).toFixed(0) !== '502258') fail('chart.futureValue: Fig. 6.1 high-fee end should be $502,258');
+  }
+  if (typeof chart.drift !== 'function' || typeof chart.mostUnderweight !== 'function') fail('js/chart.js: must export drift and mostUnderweight');
+  else {
+    if (chart.drift([60, 30, 10], [67, 24, 9]).join() !== '7,-6,-1') fail('chart.drift: 60/30/10 to 67/24/9 is +7, -6, -1');
+    if (chart.mostUnderweight([60, 30, 10], [67, 24, 9]) !== 1) fail('chart.mostUnderweight: the example pie should buy international');
+    if (chart.mostUnderweight([50, 50], [40, 60]) !== 0) fail('chart.mostUnderweight: 50/50 at 40/60 should buy the first');
+    const p = chart.pie;
+    if (!p || p.target.reduce((a, b) => a + b, 0) !== 100 || p.now.reduce((a, b) => a + b, 0) !== 100) fail('chart.pie: target and now must each sum to 100');
+  }
+  if (typeof chart.dividendIncome !== 'function') fail('js/chart.js: must export dividendIncome');
+  else {
+    const y1 = chart.dividendIncome(5000, 0.03, 0.06, 1), y20 = chart.dividendIncome(5000, 0.03, 0.06, 20);
+    if (!near(y1.cash, 150) || !near(y1.reinvested, 150)) fail('chart.dividendIncome: year 1 pays $150 either way');
+    if (y20.cash.toFixed(2) !== '453.84' || y20.reinvested.toFixed(2) !== '795.81') fail('chart.dividendIncome: year 20 should be $453.84 cash, $795.81 reinvested');
+  }
   for (const file of htmlFiles) {
     for (const m of read(file).matchAll(/<[a-z][^>]*\sdata-chart="([^"]+)"/g)) {
       if (!chart.charts.includes(m[1])) fail(`${file}: chart "${m[1]}" is not defined in js/chart.js`);

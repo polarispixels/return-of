@@ -55,6 +55,13 @@
     ['Systematic', 'Depends on rules', 'High upfront, low ongoing', 'systematic']
   ].map(function (r, i) { return { num: i + 1, name: r[0], risk: r[1], effort: r[2], group: r[3] }; });
 
+  // What is left after `n` losses in a row, each costing `risk` of what remains.
+  function streakLeft(risk, n) { return Math.pow(1 - risk, n); }
+
+  // The four hypothetical trades from the Chapter 10 sizing table (tools/check.js confirms
+  // each matches a row), sized at 1% of a $10,000 satellite.
+  var SIZED = [{ entry: 50, stop: 47 }, { entry: 20, stop: 18 }, { entry: 100, stop: 90 }, { entry: 8, stop: 7.5 }];
+
   // Profit or loss at expiration on one call bought at `strike` for `premium` per share.
   function longCallPL(price, strike, premium) { return (Math.max(0, price - strike) - premium) * 100; }
 
@@ -1083,6 +1090,163 @@
       'expectancy and adherence. If it shows an edge, the satellite may grow within the rules. If not, the money goes back to the core.', out);
   }
 
+  // ---- Fig. 10.1: the planned exit and the exit with no plan ----
+  // A sketch: one falling price on a 0 to 1 grid, with a stop written down before entry.
+
+  function drawExitPlan(el) {
+    var PRICE = [[0, 0.62], [0.08, 0.66], [0.16, 0.6], [0.24, 0.55], [0.3, 0.5], [0.36, 0.52], [0.42, 0.44], [0.5, 0.4],
+      [0.56, 0.42], [0.64, 0.33], [0.72, 0.28], [0.8, 0.22], [0.88, 0.18], [1, 0.12]];
+    var ENTRY = 0.62, STOP = 0.47, c = context(el), token = c.token, w = c.width, out = [];
+    var m = { top: 26, right: w < 420 ? 8 : 150, bottom: 14, left: 8 }, PH = 200;
+    var x = function (v) { return m.left + v * (w - m.left - m.right); }, y = function (v) { return m.top + (1 - v) * PH; };
+    var hitAt = 0.395, hitY = y(STOP), lastX = x(1), lastY = y(PRICE[PRICE.length - 1][1]);
+
+    out.push('<line x1="' + f1(x(0)) + '" x2="' + f1(x(1)) + '" y1="' + f1(y(STOP)) + '" y2="' + f1(y(STOP)) + '" stroke="' + token('--accent') +
+      '" stroke-width="1.5" stroke-dasharray="5 3"/>');
+    out.push(text(c, x(0), y(STOP) + 16, w < 420 ? 'Stop' : 'Stop, written before entry', '--accent'));
+    out.push(polyline(PRICE.map(function (p) { return f1(x(p[0])) + ',' + f1(y(p[1])); }), token('--fg'), 2));
+    out.push('<circle cx="' + f1(x(0)) + '" cy="' + f1(y(ENTRY)) + '" r="5" fill="' + token('--fg') + '"/>');
+    out.push(text(c, x(0) + 10, y(ENTRY) - 8, 'Entry', '--fg', 'font-weight="700"'));
+    // The planned exit: at the stop. The unplanned one: wherever the mood breaks.
+    out.push('<circle cx="' + f1(x(hitAt)) + '" cy="' + f1(hitY) + '" r="7" fill="' + token('--accent-2') + '" stroke="' + token('--bg') + '" stroke-width="2"/>');
+    out.push('<circle cx="' + f1(lastX) + '" cy="' + f1(lastY) + '" r="7" fill="' + token('--accent') + '" stroke="' + token('--bg') + '" stroke-width="2"/>');
+    out.push('<rect x="' + f1(x(hitAt)) + '" y="' + f1(hitY) + '" width="' + f1(lastX - x(hitAt)) + '" height="' + f1(lastY - hitY) +
+      '" fill="' + token('--accent') + '" fill-opacity="0.1"/>');
+    if (w >= 420) {
+      out.push(text(c, x(hitAt) + 12, hitY - 12, 'Planned exit: the loss you chose', '--accent-2', 'font-weight="700"'));
+      out.push(text(c, lastX + 12, lastY - 4, ['The exit with no plan:', 'hope fills the gap'], '--accent', 'font-weight="700"'));
+    } else {
+      out.push(text(c, x(hitAt) + 12, hitY - 12, 'Planned exit', '--accent-2', 'font-weight="700"'));
+      out.push(text(c, lastX - 4, lastY + 22, 'No plan', '--accent', 'text-anchor="end" font-weight="700"'));
+    }
+
+    mount(el, w, m.top + PH + m.bottom + 10, 'Sketch of one losing trade. The price falls through a stop written before entry; the planned ' +
+      'exit is there. With no plan, the trade drifts much lower before the exit, and the extra loss is shaded.', out);
+  }
+
+  // ---- Fig. 10.2: tighten, never loosen ----
+
+  function drawRatchet(el) {
+    var PRICE = [[0, 0.3], [0.1, 0.36], [0.18, 0.33], [0.28, 0.45], [0.36, 0.42], [0.46, 0.56], [0.54, 0.52], [0.64, 0.66], [0.72, 0.62],
+      [0.82, 0.74], [0.9, 0.7], [1, 0.8]];
+    var STEPS = [[0, 0.2], [0.3, 0.3], [0.48, 0.42], [0.66, 0.53], [0.84, 0.62]];
+    var c = context(el), token = c.token, w = c.width, out = [];
+    var m = { top: 24, right: w < 420 ? 8 : 140, left: 8 }, PH = 190;
+    var x = function (v) { return m.left + v * (w - m.left - m.right); }, y = function (v) { return m.top + (1 - v) * PH; };
+
+    out.push(text(c, 0, 14, 'A stop on a working trade', '--fg', 'font-weight="700"'));
+    out.push(polyline(PRICE.map(function (p) { return f1(x(p[0])) + ',' + f1(y(p[1])); }), token('--fg'), 2));
+    var pts = [];
+    STEPS.forEach(function (s, i) {
+      var next = i < STEPS.length - 1 ? STEPS[i + 1][0] : 1;
+      pts.push(f1(x(s[0])) + ',' + f1(y(s[1])), f1(x(next)) + ',' + f1(y(s[1])));
+    });
+    out.push(polyline(pts, token('--accent'), 2.5));
+    // The step that is not allowed: from the last level down.
+    var lx = x(0.9), ly = y(STEPS[STEPS.length - 1][1]);
+    out.push('<path d="M' + f1(lx) + ',' + f1(ly) + ' V' + f1(ly + 44) + ' H' + f1(x(1)) + '" fill="none" stroke="' + token('--accent') +
+      '" stroke-width="1.5" stroke-dasharray="4 3" stroke-opacity="0.6"/>');
+    out.push('<path d="M' + f1(lx - 7) + ',' + f1(ly + 15) + ' l14,14 m0,-14 l-14,14" stroke="' + token('--accent') + '" stroke-width="2.5"/>');
+    if (w >= 420) {
+      out.push(text(c, x(1) + 10, y(0.8) + 4, 'Price', '--fg', 'font-weight="700"'));
+      out.push(text(c, x(1) + 10, ly + 4, ['Stop: steps up', 'as the trade works'], '--accent', 'font-weight="700"'));
+      out.push(text(c, x(1) + 10, ly + 48, ['Never steps', 'back down'], '--accent'));
+    } else {
+      out.push(text(c, x(0.02), y(0.12), 'Stop steps up, never down', '--accent', 'font-weight="700"'));
+    }
+
+    mount(el, w, m.top + PH + 16, 'Sketch of a rising price with its stop. The stop steps up as the trade works. A dashed step back ' +
+      'down is crossed out: a stop may be tightened, never loosened.', out);
+  }
+
+  // ---- Fig. 10.3: four trades, one risk ----
+  // Each rectangle is shares wide and risk per share tall, so its area is the dollars at risk.
+
+  function drawSizedTrades(el) {
+    var CAPITAL = 10000, RISK = 0.01;
+    var c = context(el), token = c.token, w = c.width, wide = w >= 560, out = [];
+    var perShare = Math.min(1.2, ((wide ? (w - 40) / 2 : w) - 90) / 200), perDollar = 9, y = 26;
+
+    out.push(text(c, 0, 14, '1% of a ' + money(CAPITAL) + ' satellite: ' + money(CAPITAL * RISK) + ' at risk on each', '--fg', 'font-weight="700"'));
+    SIZED.forEach(function (t, i) {
+      var risk = t.entry - t.stop, shares = positionSize(CAPITAL, RISK, t.entry, t.stop);
+      var rw = shares * perShare, rh = risk * perDollar;
+      var ox = wide ? (i % 2) * ((w - 40) / 2 + 40) : 0, oy = wide ? 26 + Math.floor(i / 2) * 150 : y;
+      out.push(text(c, ox, oy + 14, '$' + t.entry + ' entry, stop $' + t.stop.toFixed(2).replace(/\.00$/, ''), '--fg', 'font-weight="700"'));
+      out.push(text(c, ox, oy + 29, shares + ' shares, ' + money(shares * t.entry) + ' position', '--muted'));
+      out.push('<rect x="' + f1(ox) + '" y="' + (oy + 38) + '" width="' + f1(rw) + '" height="' + f1(rh) + '" fill="' + token('--accent') + '"/>');
+      out.push(text(c, ox + rw + 8, oy + 38 + rh / 2 + 4, money(shares * risk), '--fg', 'font-weight="700"'));
+      if (!wide) y += 38 + rh + 26;
+    });
+    var bottom = wide ? 26 + 2 * 150 : y;
+    out.push(text(c, 0, bottom + 4, ['Width is shares, height is risk per share.', 'Every red area is about ' + money(CAPITAL * RISK) + '.'], '--muted'));
+
+    mount(el, w, bottom + 30, 'Four hypothetical trades sized to risk $100 each: ' + SIZED.map(function (t) {
+      var s = positionSize(CAPITAL, RISK, t.entry, t.stop);
+      return 'entry $' + t.entry + ', stop $' + t.stop + ', ' + s + ' shares, ' + money(s * (t.entry - t.stop)) + ' at risk';
+    }).join('; ') + '. The share counts and position costs differ; the risk stays the same.', out);
+  }
+
+  // ---- Fig. 10.4: expectancy as a tug of war ----
+
+  function drawTugOfWar(el) {
+    var SYSTEMS = [{ name: 'Wins 40% of the time', p: 0.4, win: 300, loss: 100 }, { name: 'Wins 60% of the time', p: 0.6, win: 100, loss: 300 }];
+    var c = context(el), token = c.token, w = c.width, MAX = 140, ROW = 92, out = [];
+    var mid = w / 2, half = (w / 2) - 8, sx = function (v) { return mid + (v / MAX) * half; };
+
+    out.push(text(c, mid - 8, 14, 'Losses pull this way', '--accent', 'text-anchor="end" font-weight="700"'));
+    out.push(text(c, mid + 8, 14, 'Wins pull this way', '--fg', 'font-weight="700"'));
+    SYSTEMS.forEach(function (s, i) {
+      var top = 28 + i * ROW, plus = s.p * s.win, minus = (1 - s.p) * s.loss, net = expectancy(s.p, s.win, s.loss);
+      out.push(text(c, 0, top + 12, w < 420
+        ? Math.round(s.p * 100) + '% wins: ' + money(s.win) + ' win, ' + money(s.loss) + ' loss'
+        : s.name + ': average win ' + money(s.win) + ', loss ' + money(s.loss), '--fg'));
+      out.push('<rect x="' + f1(sx(-minus)) + '" y="' + (top + 20) + '" width="' + f1(sx(0) - sx(-minus)) + '" height="18" fill="' + token('--accent') + '"/>');
+      out.push('<rect x="' + f1(sx(0)) + '" y="' + (top + 20) + '" width="' + f1(sx(plus) - sx(0)) + '" height="18" fill="' + token('--fg') + '"/>');
+      out.push(text(c, sx(-minus) + 6, top + 33, '&minus;' + money(minus), '--bg', 'font-weight="700"'));
+      out.push(text(c, sx(plus) - 6, top + 33, '+' + money(plus), '--bg', 'text-anchor="end" font-weight="700"'));
+      out.push('<line x1="' + f1(mid) + '" x2="' + f1(mid) + '" y1="' + (top + 16) + '" y2="' + (top + 42) + '" stroke="' + token('--fg') + '" stroke-width="2"/>');
+      out.push(text(c, mid, top + 58, 'Expectancy: ' + (net < 0 ? '&minus;' : '+') + money(Math.abs(net)) + ' a trade', net < 0 ? '--accent' : '--fg',
+        'text-anchor="middle" font-weight="700"'));
+    });
+
+    mount(el, w, 28 + 2 * ROW - 10, 'Two systems as a tug of war. Winning 40% at $300 against 60% losing $100: wins pull $120, losses $60, ' +
+      'expectancy plus $60. Winning 60% at $100 against 40% losing $300: wins pull $60, losses $120, expectancy minus $60.', out);
+  }
+
+  // ---- Fig. 10.5: ten losses in a row, at four sizes ----
+
+  function drawStreaks(el) {
+    var SERIES = [{ r: 0.01, token: '--fg', width: 3 }, { r: 0.02, token: '--accent-2', width: 2 }, { r: 0.05, token: '--accent-2-soft', width: 2 },
+      { r: 0.1, token: '--accent', width: 3 }];
+    var N = 10, c = context(el), token = c.token, w = c.width, narrow = w < 420;
+    var h = Math.round(clamp(w * 0.55, 260, 380));
+    var m = { top: 26, right: narrow ? 70 : 170, bottom: 30, left: 44 };
+    var x = function (k) { return m.left + (k / N) * (w - m.left - m.right); };
+    var y = function (v) { return h - m.bottom - v * (h - m.top - m.bottom); };
+    var out = [];
+
+    hGrid(c, out, m, w, y, [0, 0.25, 0.5, 0.75, 1], function (t) { return Math.round(t * 100) + '%'; });
+    [0, 5, 10].forEach(function (k) { out.push(text(c, x(k), h - 8, k === 0 ? 'Start' : k + ' losses', '--muted', 'text-anchor="' + (k === 0 ? 'start' : k === N ? 'end' : 'middle') + '"')); });
+    out.push(text(c, m.left, 14, 'Satellite left after a losing streak', '--fg', 'font-weight="700"'));
+    var ends = SERIES.map(function (s) { return y(streakLeft(s.r, N)) + 4; }), ly = spread(ends, narrow ? 16 : 18);
+    SERIES.forEach(function (s, i) {
+      var pts = [];
+      for (var k = 0; k <= N; k++) pts.push(f1(x(k)) + ',' + f1(y(streakLeft(s.r, k))));
+      out.push(polyline(pts, token(s.token), s.width));
+      var left = streakLeft(s.r, N), need = breakeven(1 - left);
+      out.push(text(c, x(N) + 8, ly[i], narrow
+        ? Math.round(s.r * 100) + '%: ' + Math.round(left * 100) + '%'
+        : Math.round(s.r * 100) + '% a trade: ' + Math.round(left * 100) + '% left, needs +' + Math.round(need * 100) + '%', '--fg',
+        i === 0 || i === 3 ? 'font-weight="700"' : ''));
+    });
+
+    mount(el, w, h, 'Line chart: what is left after ten losses in a row. ' + SERIES.map(function (s) {
+      var left = streakLeft(s.r, N);
+      return 'At ' + Math.round(s.r * 100) + '% a trade, ' + Math.round(left * 100) + '% left, needing a ' + Math.round(breakeven(1 - left) * 100) + '% gain to recover';
+    }).join('. ') + '.', out);
+  }
+
   // ---- Fig. 9.1: how long each strategy holds, on one time scale ----
   // A log scale of seconds, from one second to thirty years.
 
@@ -2066,6 +2230,8 @@
     fees: drawFees, pie: drawPie, 'dividend-loop': drawDividendLoop, 'dividend-income': drawDividendIncome,
     drift: drawDrift, 'core-default': drawCoreDefault,
     hedge: drawHedge,
+    'exit-plan': drawExitPlan, ratchet: drawRatchet, 'sized-trades': drawSizedTrades, 'tug-of-war': drawTugOfWar,
+    streaks: drawStreaks,
     'holding-periods': drawHoldingPeriods, 'long-call': drawLongCall, 'tuition-months': drawTuitionMonths, 'paper-gate': drawPaperGate,
     'trade-cap': drawTradeCap,
     'option-roles': drawOptionRoles, 'covered-call': drawCoveredCall, 'short-put': drawShortPut, wheel: drawWheel,
@@ -2086,7 +2252,7 @@
     module.exports = {
       grow: grow, breakeven: breakeven, futureValue: futureValue, drift: drift,
       mostUnderweight: mostUnderweight, dividendIncome: dividendIncome, pie: PIE,
-      hedgedValue: hedgedValue, longCallPL: longCallPL, tuitionPath: tuitionPath, coveredCallPL: coveredCallPL, shortPutPL: shortPutPL, wheel: WHEEL, rewardRisk: rewardRisk, positionSize: positionSize, runningAverage: runningAverage, traderA: TRADER_A, timeValueLeft: timeValueLeft, promoted: promoted,
+      hedgedValue: hedgedValue, streakLeft: streakLeft, sizedTrades: SIZED, longCallPL: longCallPL, tuitionPath: tuitionPath, coveredCallPL: coveredCallPL, shortPutPL: shortPutPL, wheel: WHEEL, rewardRisk: rewardRisk, positionSize: positionSize, runningAverage: runningAverage, traderA: TRADER_A, timeValueLeft: timeValueLeft, promoted: promoted,
       strategies: STRATEGIES, attentionShare: attentionShare, concentrationHit: concentrationHit,
       expectancy: expectancy, breakevenPayoff: breakevenPayoff, netAfterCosts: netAfterCosts, traderB: TRADER_B,
       roundTrip: roundTrip, lossPath: lossPath,

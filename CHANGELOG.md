@@ -4,6 +4,15 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-20
+
+Chapter 10 gets a figure for every section.
+
+### Added
+
+- Chapter 10, Risk and Sizing: five figures. Fig. 10.1, one losing trade with a planned exit and an exit with no plan. Fig. 10.2, a stop that steps up and never back down. Fig. 10.3, the table's four trades as rectangles of equal area, $100 at risk each. Fig. 10.4, expectancy as a tug of war between the win side and the loss side. Fig. 10.5, ten losses in a row at 1%, 2%, 5%, and 10% risk, with the gain each needs to recover.
+- Deploy checks for the losing-streak arithmetic, and that the four sized trades in Fig. 10.3 match the Chapter 10 table row for row.
+
 ## [0.15.0] - 2026-11-20
 
 Chapter 9 gets a figure for every section.

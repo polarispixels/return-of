@@ -73,6 +73,7 @@ if (onAt >= 0 && ofAt >= 0 && onAt > ofAt) fail('index.html: Fig. 1 must come be
 // 6. Chart arithmetic is right, and every chart a page asks for exists.
 const chart = require('../js/chart.js');
 const near = (a, b) => Math.abs(a - b) < 1e-9;
+const money0 = (v) => '$' + Math.round(v).toLocaleString('en-US');
 if (typeof chart.grow !== 'function' || typeof chart.breakeven !== 'function' || !Array.isArray(chart.charts)) {
   fail('js/chart.js: must export grow, breakeven, and the list of chart names');
 } else {
@@ -109,6 +110,19 @@ if (typeof chart.grow !== 'function' || typeof chart.breakeven !== 'function' ||
     if (!near(chart.lossPath(10000, 0.07, 9, 10, 0.5), 10000 * Math.pow(1.07, 9))) fail('chart.lossPath: before the fall it compounds untouched');
     if (chart.lossPath(10000, 0.07, 30, 10, 0.5).toFixed(0) !== '38061') fail('chart.lossPath: Fig. 1.3 ends at $38,061 with the fall');
     if (chart.lossPath(10000, 0.07, 30, 99, 0.5).toFixed(0) !== '76123') fail('chart.lossPath: Fig. 1.3 ends at $76,123 without it');
+  }
+  // Chapter 10 figures: the streak arithmetic, and the four sized trades must match the table.
+  if (typeof chart.streakLeft !== 'function' || !Array.isArray(chart.sizedTrades)) fail('js/chart.js: must export streakLeft and sizedTrades');
+  else {
+    if (chart.streakLeft(0.01, 10).toFixed(3) !== '0.904') fail('chart.streakLeft: ten 1% losses leave about 0.904');
+    if (chart.streakLeft(0.1, 10).toFixed(3) !== '0.349') fail('chart.streakLeft: ten 10% losses leave about a third');
+    const ch10 = read('content/chapters/10-risk-and-sizing.html');
+    for (const t of chart.sizedTrades) {
+      const shares = chart.positionSize(10000, 0.01, t.entry, t.stop);
+      const row = `<tr><td>$${t.entry.toFixed(2)}</td><td>$${t.stop.toFixed(2)}</td><td>$${(t.entry - t.stop).toFixed(2)}</td><td>${shares}</td>` +
+        `<td>${money0(shares * t.entry)}</td><td>${money0(shares * (t.entry - t.stop))}</td></tr>`;
+      if (!ch10.includes(row)) fail(`chart.sizedTrades: the $${t.entry} trade does not match a row in the Chapter 10 table`);
+    }
   }
   // Chapter 9 figures.
   if (typeof chart.longCallPL !== 'function' || typeof chart.tuitionPath !== 'function') fail('js/chart.js: must export longCallPL and tuitionPath');

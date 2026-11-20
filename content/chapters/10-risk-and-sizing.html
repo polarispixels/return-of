@@ -4,9 +4,27 @@
 <p>Most losses that hurt are not the planned ones. They are the ones with no plan: a position drifts down, hope fills the gap, and the exit gets decided in the worst possible mood. The fix is simple. Before you place an order, write down where you will leave if you are wrong and where you will leave if you are right.</p>
 <p>This is the return of capital principle applied to a single trade. You protect the money first, then ask what it might earn. In the Ladder, every Level 2 entry carries a written entry price, stop and target. No written exit, no trade.</p>
 
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 10.1</span>
+    <h3 class="figure-title">One losing trade, two ways out</h3>
+  </div>
+  <div class="chart" data-chart="exit-plan"></div>
+  <p class="figure-note">A sketch, not real prices. The stop was written down before the entry, so the planned loss is the one you chose. The shaded area is what waiting for a better mood costs.</p>
+</figure>
+
 <h2>The stop is where the idea is wrong</h2>
 <p>A stop is not a random percentage. It is the price at which your reason for buying no longer holds. If you bought a breakout, the stop sits where the breakout has failed. If you bought a pullback to support, it sits just below that support. Pick the level from the chart or the thesis first. Then size the position to fit it, never the other way around.</p>
 <p>Moving a stop further away to avoid being stopped out is the same as having no stop. You may tighten a stop as a trade works. You do not loosen it.</p>
+
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 10.2</span>
+    <h3 class="figure-title">Tighten, never loosen</h3>
+  </div>
+  <div class="chart" data-chart="ratchet"></div>
+  <p class="figure-note">A sketch, not real prices. The stop moves only one way: up, as the trade works. A step back down is the same as having no stop.</p>
+</figure>
 
 <h2>The 1% rule and the sizing formula</h2>
 <p>The plan states the rule this way: size each position so that hitting the stop costs about 1% of the satellite. The satellite is the active slice of your money, so 1% of it is the most one idea can take from you.</p>
@@ -33,16 +51,43 @@
 
 <p>Notice that the position cost varies while the loss at the stop stays near $100. A wide stop means fewer shares. A tight stop means more. The risk is the constant, not the share count.</p>
 
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 10.3</span>
+    <h3 class="figure-title">Four trades, one risk</h3>
+  </div>
+  <div class="chart" data-chart="sized-trades"></div>
+  <p class="figure-note">The four trades from the table above, drawn to scale. Shares = $100 &divide; risk per share, rounded down, so the first trade risks $99. The position cost changes; the area, the dollars at risk, does not.</p>
+</figure>
+
 <h2>Expectancy: what a system earns per trade</h2>
 <p>Expectancy is the average result of a trade across many trades. The formula: win rate times average win, minus loss rate times average loss.</p>
 <p>Here is arithmetic with invented inputs. Suppose a system wins 40% of the time, with an average win of $300 and an average loss of $100. Expectancy is 0.40 &times; $300 minus 0.60 &times; $100, which is $120 minus $60, or $60 per trade. The system loses more often than it wins and is still positive. Flip the numbers (win 60%, average win $100, average loss $300) and you get $60 minus $120, or a loss of $60 per trade, even though it wins most of the time.</p>
 <p>Win rate alone tells you almost nothing. The size of wins against losses matters just as much. This is why the journal measures expectancy, and why the Ladder's promotion rule asks for it.</p>
+
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 10.4</span>
+    <h3 class="figure-title">Expectancy as a tug of war</h3>
+  </div>
+  <div class="chart" data-chart="tug-of-war"></div>
+  <p class="figure-note">Arithmetic only, with the invented inputs above. Each side pulls with rate &times; average size: 0.40 &times; $300 = $120 against 0.60 &times; $100 = $60, and the reverse. Fig. 3.4 maps every combination.</p>
+</figure>
 
 <blockquote class="pull"><p>The risk is the constant, not the share count.</p></blockquote>
 
 <h2>Why a string of losses is survivable</h2>
 <p>Even a good system has losing streaks. At 1% risk per trade, ten losses in a row cost a little under 10% of the satellite: 0.99 multiplied by itself ten times is about 0.904, so roughly 9.6% down. That hurts, but it leaves you in the game with a working account. The next streak of wins, sized the same way, starts from there.</p>
 <p>Now size at 10% per trade and the same ten losses leave you with about a third of your money. The math of recovery is harsh: a 50% loss needs a 100% gain to get back. Small risk per trade keeps the hole shallow and the climb out short.</p>
+
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 10.5</span>
+    <h3 class="figure-title">Ten losses in a row, at four sizes</h3>
+  </div>
+  <div class="chart" data-chart="streaks"></div>
+  <p class="figure-note">Arithmetic only: left = (1 &minus; risk per trade)<sup>10</sup>, and the gain needed to recover = loss &divide; (1 &minus; loss), as in Chapter 1. The 2% and 5% lines sit between the two sizes the text names.</p>
+</figure>
 
 <h2>Open questions</h2>
 <ul>

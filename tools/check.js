@@ -110,6 +110,22 @@ if (typeof chart.grow !== 'function' || typeof chart.breakeven !== 'function' ||
     if (chart.lossPath(10000, 0.07, 30, 10, 0.5).toFixed(0) !== '38061') fail('chart.lossPath: Fig. 1.3 ends at $38,061 with the fall');
     if (chart.lossPath(10000, 0.07, 30, 99, 0.5).toFixed(0) !== '76123') fail('chart.lossPath: Fig. 1.3 ends at $76,123 without it');
   }
+  // Chapter 8 figures: the payoffs, and the Wheel table's own numbers.
+  if (typeof chart.coveredCallPL !== 'function' || typeof chart.shortPutPL !== 'function' || !Array.isArray(chart.wheel)) {
+    fail('js/chart.js: must export coveredCallPL, shortPutPL, and wheel');
+  } else {
+    if (!near(chart.coveredCallPL(70, 50, 55, 1), 600)) fail('chart.coveredCallPL: called away at $55 with a $1 premium is +$600');
+    if (!near(chart.coveredCallPL(40, 50, 55, 1), -900)) fail('chart.coveredCallPL: at $40 the shares lose $1,000, less $100 premium');
+    if (!near(chart.shortPutPL(60, 50, 1.5), 150)) fail('chart.shortPutPL: above the strike you keep the $150');
+    if (!near(chart.shortPutPL(40, 50, 1.5), -850)) fail('chart.shortPutPL: at $40 you lose $1,000, less the $150 premium');
+    const net = chart.wheel.reduce((s, st) => s + st.cash, 0);
+    if (net !== 750) fail('chart.wheel: one turn nets +$750, as in the Chapter 8 table');
+    const ch8 = read('content/chapters/08-options-from-the-sellers-side.html');
+    for (const st of chart.wheel) {
+      const shown = (st.cash < 0 ? '-$' : '+$') + Math.abs(st.cash).toLocaleString('en-US');
+      if (!ch8.includes('<td>' + shown + '</td>')) fail(`chart.wheel: ${shown} is not in the Chapter 8 table`);
+    }
+  }
   // Chapter 7 figures.
   if (typeof chart.rewardRisk !== 'function' || typeof chart.positionSize !== 'function' || typeof chart.runningAverage !== 'function') {
     fail('js/chart.js: must export rewardRisk, positionSize, and runningAverage');

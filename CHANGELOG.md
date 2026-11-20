@@ -4,6 +4,16 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-20
+
+Chapter 8 gets a figure for every section.
+
+### Added
+
+- Chapter 8, Options From the Seller's Side: five figures. Fig. 8.1, who pays, who collects, and who is obliged, for calls and puts. Fig. 8.2, a covered call's payoff, with the upside given up. Fig. 8.3, a sold put against owning at the strike: the full downside, less the premium. Fig. 8.4, one turn of the Wheel as a cycle. Fig. 8.5, each obligation covered by cash or shares before the trade.
+- A payoff frame shared by the two payoff charts. On phones they name their lines in a legend above the plot.
+- Deploy checks for the covered call and sold put payoffs, and that every cash flow in the Wheel figure appears in the Chapter 8 table.
+
 ## [0.13.0] - 2026-11-20
 
 Charts get a second color: blue.

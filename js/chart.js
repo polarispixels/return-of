@@ -55,6 +55,22 @@
     ['Systematic', 'Depends on rules', 'High upfront, low ongoing', 'systematic']
   ].map(function (r, i) { return { num: i + 1, name: r[0], risk: r[1], effort: r[2], group: r[3] }; });
 
+  // Profit or loss at expiration on 100 shares bought at `basis`, with one call sold at
+  // `strike` for `premium` per share. Above the strike, the shares are called away.
+  function coveredCallPL(price, basis, strike, premium) { return (Math.min(price, strike) - basis + premium) * 100; }
+
+  // Profit or loss at expiration on one put sold at `strike` for `premium` per share.
+  function shortPutPL(price, strike, premium) { return (premium - Math.max(0, strike - price)) * 100; }
+
+  // One turn of the Wheel, the Chapter 8 table's hypothetical numbers (tools/check.js
+  // confirms each cash flow appears in that table).
+  var WHEEL = [
+    { lines: ['1. Sell one $50 put', 'Premium +$150'], cash: 150, holding: 'cash' },
+    { lines: ['2. Assigned: buy 100 at $50', 'Pay $5,000'], cash: -5000, holding: 'shares' },
+    { lines: ['3. Sell one $55 call', 'Premium +$100'], cash: 100, holding: 'shares' },
+    { lines: ['4. Called away at $55', 'Receive $5,500'], cash: 5500, holding: 'cash' }
+  ];
+
   // Reward per dollar of risk, from the three written numbers of a trade.
   function rewardRisk(entry, stop, target) { return (target - entry) / (entry - stop); }
 
@@ -1052,6 +1068,188 @@
       'expectancy and adherence. If it shows an edge, the satellite may grow within the rules. If not, the money goes back to the core.', out);
   }
 
+  // ---- Fig. 8.1: who pays, who collects, who is obliged ----
+
+  function drawOptionRoles(el) {
+    var CELLS = [
+      { row: 0, col: 0, lines: ['Pays premium.', 'Has the right to', 'buy 100 shares', 'at the strike.'] },
+      { row: 0, col: 1, lines: ['Collects premium.', 'Must sell 100', 'shares at the strike', 'if assigned.'], fill: true },
+      { row: 1, col: 0, lines: ['Pays premium.', 'Has the right to', 'sell 100 shares', 'at the strike.'] },
+      { row: 1, col: 1, lines: ['Collects premium.', 'Must buy 100', 'shares at the strike', 'if assigned.'], fill: true }
+    ];
+    var c = context(el), token = c.token, w = c.width, narrow = w < 420;
+    var left = narrow ? 0 : 64, band = narrow ? 22 : 0, top = 26, gap = 6, cw = Math.min(200, (w - left - gap) / 2), ch = 96, out = [];
+
+    out.push(text(c, left + cw / 2, 14, 'Buyer', '--fg', 'text-anchor="middle" font-weight="700"'));
+    out.push(text(c, left + cw * 1.5 + gap, 14, narrow ? 'Seller' : 'Seller (this chapter)', '--fg', 'text-anchor="middle" font-weight="700"'));
+    ['A call', 'A put'].forEach(function (name, r) {
+      var y = top + r * (ch + gap + band);
+      out.push(narrow ? text(c, 0, y + 15, name, '--fg', 'font-weight="700"') : text(c, 0, y + ch / 2 + 4, name, '--fg', 'font-weight="700"'));
+    });
+    CELLS.forEach(function (k) {
+      var x = left + k.col * (cw + gap), y = top + band + k.row * (ch + gap + band);
+      out.push('<rect x="' + f1(x) + '" y="' + y + '" width="' + f1(cw) + '" height="' + ch + '" fill="' +
+        token(k.fill ? '--fg' : '--accent-2-soft') + '"/>');
+      out.push(text(c, x + 10, y + 22, k.lines[0], k.fill ? '--bg' : '--fg', 'font-weight="700"'));
+      out.push(text(c, x + 10, y + 41, k.lines.slice(1), k.fill ? '--bg' : '--fg'));
+    });
+
+    mount(el, w, top + 2 * (ch + band) + gap + 4, 'Grid of option roles. A call buyer pays the premium and has the right to buy ' +
+      '100 shares at the strike; the call seller collects it and must sell if assigned. A put buyer pays and has the right to sell; ' +
+      'the put seller collects and must buy if assigned.', out);
+  }
+
+  // ---- Payoff frame for Figs. 8.2 and 8.3: profit or loss at expiration against the stock price ----
+
+  function payoffFrame(el, X_MIN, X_MAX, Y_MIN, Y_MAX, yTicks) {
+    var c = context(el), w = c.width, narrow = w < 420;
+    var h = Math.round(clamp(w * 0.58, 280, 420)) + (narrow ? 40 : 0);
+    var m = { top: narrow ? 66 : 28, right: narrow ? 10 : 112, bottom: 30, left: 56 };
+    var f = {
+      c: c, w: w, h: h, m: m, out: [], narrow: narrow,
+      // On narrow screens the series are named in a legend above the plot, not at the line ends.
+      legend: function (items) {
+        items.forEach(function (it, i) {
+          var lx = (i % 2) * 140, ly = 34 + Math.floor(i / 2) * 18;
+          f.out.push(it.area
+            ? '<rect x="' + lx + '" y="' + (ly - 9) + '" width="18" height="10" fill="' + c.token(it.token) + '" fill-opacity="0.14" stroke="' + c.token(it.token) + '"/>'
+            : '<line x1="' + lx + '" x2="' + (lx + 18) + '" y1="' + (ly - 4) + '" y2="' + (ly - 4) + '" stroke="' + c.token(it.token) + '" stroke-width="' +
+              (it.dash ? 2 : 3) + '"' + (it.dash ? ' stroke-dasharray="5 4"' : '') + '/>');
+          f.out.push(text(c, lx + 24, ly, it.name, '--fg'));
+        });
+      },
+      x: function (p) { return m.left + ((p - X_MIN) / (X_MAX - X_MIN)) * (w - m.left - m.right); },
+      y: function (v) { return h - m.bottom - ((v - Y_MIN) / (Y_MAX - Y_MIN)) * (h - m.top - m.bottom); },
+      curve: function (fn) {
+        var pts = [];
+        for (var p = X_MIN; p <= X_MAX + 1e-9; p += 0.25) pts.push(f1(f.x(p)) + ',' + f1(f.y(fn(p))));
+        return pts;
+      }
+    };
+    yTicks.forEach(function (t) {
+      f.out.push('<line x1="' + m.left + '" x2="' + f1(w - m.right) + '" y1="' + f1(f.y(t)) + '" y2="' + f1(f.y(t)) + '" stroke="' +
+        c.token(t === 0 ? '--fg' : '--muted') + '" stroke-width="' + (t === 0 ? 2 : 0.5) + '"/>');
+      f.out.push(text(c, m.left - 8, f.y(t) + 4, (t > 0 ? '+$' : t < 0 ? '&minus;$' : '$') + Math.abs(t).toLocaleString('en-US'), '--muted', 'text-anchor="end"'));
+    });
+    var step = w < 420 ? 10 : 5;
+    for (var p = Math.ceil(X_MIN / step) * step; p <= X_MAX; p += step) {
+      f.out.push(text(c, f.x(p), h - 8, '$' + p, '--muted', 'text-anchor="middle"'));
+    }
+    f.out.push(text(c, w < 420 ? 0 : m.left, 14, w < 420 ? 'Profit or loss at expiration' : 'Profit or loss at expiration, by the stock price then',
+      '--fg', 'font-weight="700"'));
+    return f;
+  }
+
+  // ---- Fig. 8.2: a covered call caps the upside ----
+
+  function drawCoveredCall(el) {
+    var BASIS = 50, STRIKE = 55, PREMIUM = 1, X_MIN = 35, X_MAX = 70;
+    var f = payoffFrame(el, X_MIN, X_MAX, -1500, 2000, [-1500, -1000, -500, 0, 500, 1000, 1500, 2000]), c = f.c, token = c.token, out = f.out;
+    var shares = function (p) { return (p - BASIS) * 100; }, covered = function (p) { return coveredCallPL(p, BASIS, STRIKE, PREMIUM); };
+
+    // The upside given up: between the two lines, above the strike.
+    var given = [];
+    for (var p = STRIKE; p <= X_MAX + 1e-9; p += 0.25) given.push(f1(f.x(p)) + ',' + f1(f.y(shares(p))));
+    given.push(f1(f.x(X_MAX)) + ',' + f1(f.y(covered(X_MAX))), f1(f.x(STRIKE)) + ',' + f1(f.y(covered(STRIKE))));
+    out.push('<polygon points="' + given.join(' ') + '" fill="' + token('--accent') + '" fill-opacity="0.14"/>');
+    out.push(polyline(f.curve(shares), token('--accent-2'), 2, 'stroke-dasharray="5 4"'));
+    out.push(polyline(f.curve(covered), token('--fg'), 3));
+    out.push('<line x1="' + f1(f.x(STRIKE)) + '" x2="' + f1(f.x(STRIKE)) + '" y1="' + f.m.top + '" y2="' + f1(f.h - f.m.bottom) + '" stroke="' +
+      token('--muted') + '" stroke-width="1" stroke-dasharray="2 3"/>');
+    out.push(text(c, f.x(STRIKE) + 4, f.m.top + 12, (f.narrow ? '$' : 'Strike $') + STRIKE, '--muted'));
+
+    if (f.narrow) {
+      f.legend([{ name: 'Shares alone', token: '--accent-2', dash: true }, { name: 'With the call', token: '--fg' },
+        { name: 'Upside given up', token: '--accent', area: true }]);
+    } else {
+      var ly = spread([f.y(shares(X_MAX)) + 4, f.y(covered(X_MAX)) + 4], 17);
+      out.push(text(c, f.x(X_MAX) + 8, ly[0], 'Shares alone', '--accent-2', 'font-weight="700"'));
+      out.push(text(c, f.x(X_MAX) + 8, ly[1], 'With the call', '--fg', 'font-weight="700"'));
+      out.push(text(c, f.x(X_MAX) + 8, (ly[0] + ly[1]) / 2 + 40, ['Upside', 'given up'], '--accent', 'font-weight="700"'));
+      out.push(text(c, f.x(X_MIN) + 6, f.y(1700), ['Below $' + STRIKE + ', the $' + PREMIUM * 100 + ' premium', 'is a small cushion, not insurance'], '--fg'));
+    }
+
+    mount(el, f.w, f.h, 'Payoff chart at expiration for 100 shares bought at $50, alone and with a $55 call sold for $1. ' +
+      'Below $55 the call adds $100 to the result. Above $55 the result is capped at +$600, while the shares alone keep rising.', out);
+  }
+
+  // ---- Fig. 8.3: a cash-secured put takes the downside, less the premium ----
+
+  function drawShortPut(el) {
+    var STRIKE = 50, PREMIUM = 1.5, X_MIN = 30, X_MAX = 65;
+    var f = payoffFrame(el, X_MIN, X_MAX, -2000, 1500, [-2000, -1500, -1000, -500, 0, 500, 1000, 1500]), c = f.c, token = c.token, out = f.out;
+    var shares = function (p) { return (p - STRIKE) * 100; }, put = function (p) { return shortPutPL(p, STRIKE, PREMIUM); };
+
+    // The downside: below the zero line, under the put's line.
+    var down = [];
+    for (var p = X_MIN; p <= STRIKE - PREMIUM + 1e-9; p += 0.25) down.push(f1(f.x(p)) + ',' + f1(f.y(put(p))));
+    down.push(f1(f.x(STRIKE - PREMIUM)) + ',' + f1(f.y(0)), f1(f.x(X_MIN)) + ',' + f1(f.y(0)));
+    out.push('<polygon points="' + down.join(' ') + '" fill="' + token('--accent') + '" fill-opacity="0.14"/>');
+    out.push(polyline(f.curve(shares), token('--accent-2'), 2, 'stroke-dasharray="5 4"'));
+    out.push(polyline(f.curve(put), token('--fg'), 3));
+    out.push('<line x1="' + f1(f.x(STRIKE)) + '" x2="' + f1(f.x(STRIKE)) + '" y1="' + f.m.top + '" y2="' + f1(f.h - f.m.bottom) + '" stroke="' +
+      token('--muted') + '" stroke-width="1" stroke-dasharray="2 3"/>');
+    out.push(text(c, f.x(STRIKE) + 4, f.m.top + 12, (f.narrow ? '$' : 'Strike $') + STRIKE, '--muted'));
+
+    if (f.narrow) {
+      f.legend([{ name: 'Owning at $' + STRIKE, token: '--accent-2', dash: true }, { name: 'Sold put', token: '--fg' },
+        { name: 'Downside, less premium', token: '--accent', area: true }]);
+    } else {
+      var ly = spread([f.y(put(X_MAX)) + 4, f.y(shares(X_MAX)) + 4], 17);
+      out.push(text(c, f.x(X_MAX) + 8, ly[0], ['Sold put:', 'keep $' + PREMIUM * 100], '--fg', 'font-weight="700"'));
+      out.push(text(c, f.x(X_MAX) + 8, ly[1] + 18, ['Owning', 'at $' + STRIKE], '--accent-2', 'font-weight="700"'));
+      out.push(text(c, f.x(X_MIN) + 6, f.y(-280), ['Full downside,', 'less the premium'], '--accent', 'font-weight="700"'));
+    }
+
+    mount(el, f.w, f.h, 'Payoff chart at expiration for one $50 put sold for $1.50, beside owning 100 shares at $50. ' +
+      'Above $50 the seller keeps $150. Below it, the put loses almost exactly what the shares would, $150 less.', out);
+  }
+
+  // ---- Fig. 8.4: one turn of the Wheel ----
+
+  function drawWheel(el) {
+    var c = context(el), token = c.token, w = c.width, out = [];
+    var x0 = 24, bw = Math.min(340, w - 30), cx = x0 + bw / 2, ROW = 74, y = 0;
+
+    WHEEL.forEach(function (st, i) {
+      out.push(box(c, x0, y, bw, st.lines, st.holding === 'shares' ? { stroke: '--accent-2' } : {}));
+      if (i < WHEEL.length - 1) out.push(arrow(cx, y + 52, cx, y + ROW - 2, token('--fg')));
+      y += ROW;
+    });
+    var last = (WHEEL.length - 1) * ROW + 50;
+    out.push('<path d="M' + f1(cx) + ',' + (last + 2) + ' V' + (last + 16) + ' H' + f1(x0 - 14) + ' V25 H' + f1(x0 - 3) + '" fill="none" stroke="' +
+      token('--fg') + '" stroke-width="2"/>');
+    out.push(arrowhead(x0 - 1, 25, 0, token('--fg')));
+    out.push(text(c, x0 + bw + 10, ROW + 30, w >= 480 ? ['Holding', 'shares'] : '', '--accent-2', 'font-weight="700"'));
+    var net = WHEEL.reduce(function (s, st) { return s + st.cash; }, 0);
+    out.push(text(c, x0, last + 40, 'Net for one turn: +' + money(net) + ', then start over', '--fg', 'font-weight="700"'));
+
+    mount(el, w, last + 50, 'Cycle of four steps: ' + WHEEL.map(function (st) { return st.lines.join(', '); }).join('; ') +
+      '. Then back to step 1. Net for one turn: plus ' + money(net) + '.', out);
+  }
+
+  // ---- Fig. 8.5: every obligation is covered before the trade ----
+
+  function drawCovered(el) {
+    var ROWS = [
+      { name: 'Cash-secured put', owe: 'Might have to pay $5,000', have: 'Cash set aside: $5,000' },
+      { name: 'Covered call', owe: 'Might have to deliver 100 shares', have: 'Shares held: 100' }
+    ];
+    var c = context(el), token = c.token, w = c.width, bw = Math.min(360, w), ROW = 104, out = [];
+
+    ROWS.forEach(function (r, i) {
+      var top = i * ROW;
+      out.push(text(c, 0, top + 14, r.name, '--fg', 'font-weight="700"'));
+      out.push('<rect x="1" y="' + (top + 24) + '" width="' + f1(bw - 2) + '" height="28" fill="none" stroke="' + token('--accent') + '" stroke-width="2" stroke-dasharray="5 4"/>');
+      out.push(text(c, 10, top + 43, 'Obligation: ' + r.owe.charAt(0).toLowerCase() + r.owe.slice(1), '--fg'));
+      out.push('<rect x="0" y="' + (top + 56) + '" width="' + f1(bw) + '" height="28" fill="' + token('--fg') + '"/>');
+      out.push(text(c, 10, top + 75, r.have, '--bg', 'font-weight="700"'));
+    });
+
+    mount(el, w, ROWS.length * ROW - 14, 'Two matched pairs. A cash-secured put might require paying $5,000, and $5,000 in cash is set ' +
+      'aside. A covered call might require delivering 100 shares, and 100 shares are held. Each obligation is covered in full before the trade.', out);
+  }
+
   // ---- Fig. 7.1: a month of mornings ----
 
   function drawAttentionMonth(el) {
@@ -1673,6 +1871,8 @@
     fees: drawFees, pie: drawPie, 'dividend-loop': drawDividendLoop, 'dividend-income': drawDividendIncome,
     drift: drawDrift, 'core-default': drawCoreDefault,
     hedge: drawHedge,
+    'option-roles': drawOptionRoles, 'covered-call': drawCoveredCall, 'short-put': drawShortPut, wheel: drawWheel,
+    covered: drawCovered,
     'attention-month': drawAttentionMonth, setups: drawSetups, 'momentum-funnel': drawMomentumFunnel,
     'trade-plan': drawTradePlan, 'running-expectancy': drawRunningExpectancy,
     ladder: drawLadder, promotion: drawPromotion, 'time-decay': drawTimeDecay, tuition: drawTuition, neglect: drawNeglect,
@@ -1689,7 +1889,7 @@
     module.exports = {
       grow: grow, breakeven: breakeven, futureValue: futureValue, drift: drift,
       mostUnderweight: mostUnderweight, dividendIncome: dividendIncome, pie: PIE,
-      hedgedValue: hedgedValue, rewardRisk: rewardRisk, positionSize: positionSize, runningAverage: runningAverage, traderA: TRADER_A, timeValueLeft: timeValueLeft, promoted: promoted,
+      hedgedValue: hedgedValue, coveredCallPL: coveredCallPL, shortPutPL: shortPutPL, wheel: WHEEL, rewardRisk: rewardRisk, positionSize: positionSize, runningAverage: runningAverage, traderA: TRADER_A, timeValueLeft: timeValueLeft, promoted: promoted,
       strategies: STRATEGIES, attentionShare: attentionShare, concentrationHit: concentrationHit,
       expectancy: expectancy, breakevenPayoff: breakevenPayoff, netAfterCosts: netAfterCosts, traderB: TRADER_B,
       roundTrip: roundTrip, lossPath: lossPath,

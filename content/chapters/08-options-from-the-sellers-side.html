@@ -5,6 +5,15 @@
 <p>The buyer pays the seller a price called the <strong>premium</strong>. The seller keeps it no matter what happens. In return, the seller takes on an obligation. If you sell a call, you must sell 100 shares at the strike if the buyer asks. If you sell a put, you must buy 100 shares at the strike if the buyer asks. When the buyer does ask, that is <strong>assignment</strong>.</p>
 <p>Time decay is why sellers like this side. An option loses value as expiration nears, other things equal. That helps the seller and hurts the buyer. Level 3 of the Ladder is built to teach this: time decay, volatility and assignment, from the side where time works for you.</p>
 
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 8.1</span>
+    <h3 class="figure-title">Who pays, who collects, who is obliged</h3>
+  </div>
+  <div class="chart" data-chart="option-roles"></div>
+  <p class="figure-note">One contract covers 100 shares. This chapter sits in the right-hand column: the seller is paid up front and takes the obligation. Fig. 5.3 shows the time decay that works for the seller.</p>
+</figure>
+
 <h2>Covered calls</h2>
 <p>Covered Calls (Strategy 6) means selling calls on shares you already own. The shares &ldquo;cover&rdquo; the obligation, so you can always deliver them. Step by step:</p>
 <ol>
@@ -16,10 +25,37 @@
 </ol>
 <p>The trade-off is capped upside. If the stock jumps far past the strike, you still sell at the strike and miss the rest. The premium is a small cushion on the way down, not insurance. Risk is low to medium and effort is medium.</p>
 
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 8.2</span>
+    <h3 class="figure-title">A covered call caps the upside</h3>
+  </div>
+  <div class="chart" data-chart="covered-call"></div>
+  <p class="figure-note">Arithmetic only, with the hypothetical numbers from the Wheel table below: 100 shares bought at $50 and a $55 call sold for $1.00 per share, no fees. Profit or loss at expiration = (the lower of the price or $55) &minus; $50 + $1, times 100.</p>
+</figure>
+
 <h2>Cash-secured puts and the Wheel</h2>
 <p>A cash-secured put means selling a put while holding enough cash to buy the shares if assigned. You are paid to wait for a price you already wanted. If the stock stays above the strike, the put expires and you keep the premium. If it falls below, you buy 100 shares at the strike.</p>
 <p>Be clear about the risk. A cash-secured put takes the full downside of owning the stock, less the premium. If the stock falls sharply, you still own it at the higher strike. Only sell puts on shares you would gladly own at that price.</p>
+
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 8.3</span>
+    <h3 class="figure-title">A sold put takes the downside, less the premium</h3>
+  </div>
+  <div class="chart" data-chart="short-put"></div>
+  <p class="figure-note">Arithmetic only: one $50 put sold for $1.50 per share, no fees, next to owning 100 shares bought at $50. Profit or loss = $1.50 &minus; (how far the price ends below $50), times 100. Below $50 the two lines run side by side, $150 apart: the premium is all that separates them.</p>
+</figure>
 <p>The Wheel (Strategy 7) is the cycle that joins the two. Sell puts until you are assigned. Once you own the shares, sell covered calls. When the shares are called away, you hold cash again, and you start over with puts. Risk is medium and effort is medium.</p>
+
+<figure class="figure" data-style="editorial">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 8.4</span>
+    <h3 class="figure-title">One turn of the Wheel</h3>
+  </div>
+  <div class="chart" data-chart="wheel"></div>
+  <p class="figure-note">The four steps of the table below as a cycle. Blue outlines mark the steps where you hold the shares; at the others you hold cash. Whether to accept assignment or roll is an open question below.</p>
+</figure>
 
 <figure class="figure" data-style="swiss">
   <div class="figure-head">
@@ -43,6 +79,15 @@
 
 <h2>Why it fits the method</h2>
 <p>The cash and the shares are both set aside before the trade, so the maximum cost is known. That matches return of capital first. The same rules still apply: write the plan in the journal, size it, and only sell on stocks you would hold. In a cash account or IRA, no margin is needed.</p>
+
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 8.5</span>
+    <h3 class="figure-title">Every obligation is covered before the trade</h3>
+  </div>
+  <div class="chart" data-chart="covered"></div>
+  <p class="figure-note">The hypothetical numbers from the Wheel table. Because each obligation is matched in full by cash or shares already held, the most the trade can cost is known before it starts.</p>
+</figure>
 
 <h2>Open questions</h2>
 <ul>

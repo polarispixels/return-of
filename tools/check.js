@@ -111,6 +111,17 @@ if (typeof chart.grow !== 'function' || typeof chart.breakeven !== 'function' ||
     if (chart.lossPath(10000, 0.07, 30, 10, 0.5).toFixed(0) !== '38061') fail('chart.lossPath: Fig. 1.3 ends at $38,061 with the fall');
     if (chart.lossPath(10000, 0.07, 30, 99, 0.5).toFixed(0) !== '76123') fail('chart.lossPath: Fig. 1.3 ends at $76,123 without it');
   }
+  // Chapter 16 figures: the IPS map must list the template's sections, in order.
+  if (!Array.isArray(chart.ipsSections)) fail('js/chart.js: must export ipsSections');
+  else {
+    const ch16 = read('content/chapters/16-your-investment-policy-statement.html');
+    const names = [...ch16.matchAll(/<tr><td>(\d+\. [^<]+)<\/td>/g)].map((m) => m[1]);
+    if (names.join('|') !== chart.ipsSections.map((s) => s.name).join('|')) fail('chart.ipsSections: must match the Chapter 16 template rows');
+    chart.ipsSections.forEach((s) => {
+      const row = ch16.match(new RegExp('<tr><td>' + s.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '</td><td>([^<]*)</td>'));
+      if (row && row[1].includes('____') !== s.blank) fail(`chart.ipsSections: "${s.name}" ${s.blank ? 'should' : 'should not'} be marked as having blanks`);
+    });
+  }
   // Chapter 15 figures.
   if (typeof chart.interpolate !== 'function' || typeof chart.lineFit !== 'function' || !chart.overfit) fail('js/chart.js: must export interpolate, lineFit, and overfit');
   else {

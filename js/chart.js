@@ -55,6 +55,16 @@
     ['Systematic', 'Depends on rules', 'High upfront, low ongoing', 'systematic']
   ].map(function (r, i) { return { num: i + 1, name: r[0], risk: r[1], effort: r[2], group: r[3] }; });
 
+  // The nine sections of the Chapter 16 template (tools/check.js matches them to the table),
+  // whether each has blanks to fill, and the chapter that sets it.
+  var IPS_SECTIONS = [
+    { name: '1. Purpose and principles', blank: false, ch: '1' }, { name: '2. The four buckets', blank: true, ch: '2' },
+    { name: '3. Strategies allowed now', blank: true, ch: '4, 5' }, { name: '4. Sizing', blank: false, ch: '10' },
+    { name: '5. Daily trade cap', blank: true, ch: '9, 14' }, { name: '6. Tuition budget', blank: true, ch: '9' },
+    { name: '7. Morning routine', blank: true, ch: '12' }, { name: '8. Promotion and demotion', blank: false, ch: '5' },
+    { name: '9. Review schedule', blank: true, ch: '16' }
+  ];
+
   // The polynomial through every point (Lagrange form), evaluated at `x`: a rule tuned to fit
   // the past exactly.
   function interpolate(xs, ys, x) {
@@ -1147,6 +1157,147 @@
       'expectancy and adherence. If it shows an edge, the satellite may grow within the rules. If not, the money goes back to the core.', out);
   }
 
+  // ---- Fig. 16.1: one page, four questions ----
+
+  function drawIpsPage(el) {
+    var QUESTIONS = [['What is the money for?', 'Purpose and principles'], ['How is it divided?', 'The four buckets'],
+      ['What may you do with it?', 'Strategies, sizing, caps'], ['When must you stop?', 'Tuition, promotion, demotion']];
+    var c = context(el), token = c.token, w = c.width, wide = w >= 560, out = [];
+    var pw = wide ? Math.min(330, w * 0.55) : w, ROW = 50, top = 34;
+
+    out.push('<rect x="1" y="1" width="' + f1(pw - 2) + '" height="' + (top + QUESTIONS.length * ROW + 8) + '" fill="none" stroke="' + token('--fg') + '" stroke-width="2"/>');
+    out.push('<rect x="0" y="0" width="' + f1(pw) + '" height="26" fill="' + token('--fg') + '"/>');
+    out.push(text(c, 12, 18, 'Investment policy statement', '--bg', 'font-weight="700"'));
+    QUESTIONS.forEach(function (q, i) {
+      var y = top + i * ROW;
+      out.push('<circle cx="22" cy="' + (y + 16) + '" r="10" fill="' + token('--accent-2') + '"/>');
+      out.push(text(c, 22, y + 20, String(i + 1), '--bg', 'text-anchor="middle" font-weight="700" font-size="11"'));
+      out.push(text(c, 42, y + 15, q[0], '--fg', 'font-weight="700"'));
+      out.push(text(c, 42, y + 31, q[1], '--muted'));
+    });
+    var h = top + QUESTIONS.length * ROW + 10;
+    var nx = wide ? pw + 28 : 0, ny = wide ? 40 : h + 24;
+    out.push(text(c, nx, ny, ['Written in Level 1,', 'before any active trade.', '', 'Changed only on review,', 'never in the middle of a trade.'], '--fg'));
+
+    mount(el, w, wide ? h : ny + 76, 'One page, the investment policy statement, answering four questions: what the money is for, how it is divided, ' +
+      'what you may do with it, and when you must stop. It is written in Level 1, before any active trade, and changed only on review.', out);
+  }
+
+  // ---- Fig. 16.2: the template, and where each section comes from ----
+
+  function drawIpsMap(el) {
+    var c = context(el), token = c.token, w = c.width, ROW = 30, top = 26, out = [];
+    var tagW = 64, nameX = 20;
+
+    out.push('<rect x="0" y="6" width="12" height="12" fill="' + token('--accent-2') + '"/>');
+    out.push(text(c, 18, 16, 'Blanks you fill in', '--fg'));
+    out.push('<rect x="140" y="6" width="12" height="12" fill="' + token('--fg') + '"/>');
+    out.push(text(c, 158, 16, 'Set by the method', '--fg'));
+    IPS_SECTIONS.forEach(function (s, i) {
+      var y = top + i * ROW;
+      out.push('<rect x="0" y="' + (y + 8) + '" width="8" height="16" fill="' + token(s.blank ? '--accent-2' : '--fg') + '"/>');
+      out.push(text(c, nameX, y + 21, s.name, '--fg', s.blank ? '' : 'font-weight="700"'));
+      out.push('<rect x="' + f1(w - tagW) + '" y="' + (y + 6) + '" width="' + tagW + '" height="20" fill="none" stroke="' + token('--muted') + '" stroke-width="1"/>');
+      out.push(text(c, w - tagW / 2, y + 20, 'Ch. ' + s.ch, '--muted', 'text-anchor="middle"'));
+      out.push('<line x1="0" x2="' + f1(w) + '" y1="' + (y + ROW) + '" y2="' + (y + ROW) + '" stroke="' + token('--muted') + '" stroke-width="0.5"/>');
+    });
+
+    mount(el, w, top + IPS_SECTIONS.length * ROW + 4, 'The nine sections of the template, each with the chapter that sets it. ' +
+      IPS_SECTIONS.map(function (s) { return s.name + ', chapter ' + s.ch + (s.blank ? ', with blanks to fill' : ', set by the method'); }).join('; ') + '.', out);
+  }
+
+  // ---- Fig. 16.3: up on proof, down on neglect ----
+
+  function drawUpDown(el) {
+    var LEVELS = ['Level 1: Foundation', 'Level 2: Swing, Growth Momentum', 'Level 3: Covered Calls, the Wheel', 'Level 4: Long Options, 0DTE'];
+    var c = context(el), token = c.token, w = c.width, narrow = w < 480, out = [];
+    var bw = Math.min(narrow ? w - 70 : 300, w - 70), x0 = 30, ROW = 64, top = 6;
+    var y = function (i) { return top + (LEVELS.length - 1 - i) * ROW; };
+
+    LEVELS.forEach(function (l, i) {
+      out.push(box(c, x0, y(i), bw, [narrow ? l.split(',')[0] : l],
+        i === 0 ? { fill: '--fg' } : i === 3 ? { stroke: '--accent' } : { stroke: '--accent-2' }));
+      if (i < LEVELS.length - 1) {
+        out.push(arrow(x0 + bw * 0.3, y(i) - 2, x0 + bw * 0.3, y(i + 1) + 42, token('--fg')));
+        out.push(text(c, x0 + bw * 0.3 + 8, y(i) - 8, i === 2 ? 'Proof + 50 paper trades' : 'Proof', '--fg', 'font-weight="700"' + (narrow ? ' font-size="11"' : '')));
+      }
+    });
+    // Demotion: from any active level back to the core.
+    var rx = x0 + bw + 18;
+    out.push('<path d="M' + f1(x0 + bw + 2) + ',' + (y(3) + 20) + ' H' + f1(rx) + ' V' + (y(0) + 20) + ' H' + f1(x0 + bw + 10) + '" fill="none" stroke="' +
+      token('--accent') + '" stroke-width="2" stroke-dasharray="5 4"/>');
+    out.push(arrowhead(x0 + bw + 3, y(0) + 20, Math.PI, token('--accent')));
+    [1, 2].forEach(function (i) {
+      out.push('<line x1="' + f1(x0 + bw + 2) + '" x2="' + f1(rx) + '" y1="' + (y(i) + 20) + '" y2="' + (y(i) + 20) + '" stroke="' + token('--accent') +
+        '" stroke-width="2" stroke-dasharray="5 4"/>');
+    });
+    var by = y(0) + 64;
+    var note = narrow
+      ? ['Proof: positive expectancy and', 'at least 90% adherence.', 'Dashed: 10 trading days without the', 'routine send the slice to the core.']
+      : ['Proof: positive expectancy and at least 90% adherence.', 'Neglect (dashed): 10 trading days without the routine',
+        'sends the active slice back to the core.'];
+    out.push(text(c, 0, by, note, '--fg'));
+
+    mount(el, w, by + note.length * 15 + 4, 'Four levels. Each step up needs proof: positive expectancy and at least 90% adherence; Level 4 also needs ' +
+      'about 50 paper trades. A dashed path from every active level leads back down: 10 trading days without the routine send the active slice to the core.', out);
+  }
+
+  // ---- Fig. 16.4: the review, and a new dated version ----
+
+  function drawReview(el) {
+    var STEPS = [['1. Read the journal'], ['2. Check each number', 'against what happened'], ['3. Change the IPS on paper'], ['4. Then change practice;', 'date the new version']];
+    var c = context(el), token = c.token, w = c.width, out = [];
+    var x0 = 24, bw = Math.min(320, w - 30), cx = x0 + bw / 2, y = 0;
+
+    STEPS.forEach(function (s, i) {
+      var bh = s.length > 1 ? 50 : 40;
+      out.push(box(c, x0, y, bw, s, i === 3 ? { fill: '--fg' } : {}));
+      if (i < STEPS.length - 1) out.push(arrow(cx, y + bh + 2, cx, y + bh + 20, token('--fg')));
+      y += bh + 22;
+    });
+    var last = y - 22;
+    out.push('<path d="M' + f1(cx) + ',' + (last + 2) + ' V' + (last + 16) + ' H' + f1(x0 - 14) + ' V20 H' + f1(x0 - 3) + '" fill="none" stroke="' + token('--accent-2') +
+      '" stroke-width="2" stroke-dasharray="5 4"/>');
+    out.push(arrowhead(x0 - 1, 20, 0, token('--accent-2')));
+    out.push(text(c, x0, last + 36, 'Next review date: written down, and kept', '--accent-2', 'font-weight="700"'));
+
+    mount(el, w, last + 44, 'A review cycle: read the journal, check each number against what happened, change the IPS on paper, then change ' +
+      'practice and date the new version. A dashed path loops back to the next review date.', out);
+  }
+
+  // ---- Fig. 16.5: every rule serves one ----
+
+  function drawHub(el) {
+    var SPOKES = [['The buckets', 'keep near-term money safe'], ['The sizing rule', 'caps each loss'], ['Trade cap, tuition', 'limit a bad week'],
+      ['The demotion rule', 'returns money to the core']];
+    var c = context(el), token = c.token, w = c.width, wide = w >= 560, out = [];
+    var cx = w / 2, cy = wide ? 130 : 230, R = wide ? Math.min(220, w * 0.34) : 0;
+
+    if (wide) {
+      var pos = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+      SPOKES.forEach(function (s, i) {
+        var sx = cx + pos[i][0] * R, sy = cy + pos[i][1] * 76;
+        out.push('<line x1="' + f1(cx) + '" y1="' + cy + '" x2="' + f1(sx) + '" y2="' + f1(sy) + '" stroke="' + token('--accent-2') + '" stroke-width="2"/>');
+        out.push(box(c, sx - 95, sy - 25, 190, s, { stroke: '--accent-2' }).replace('fill="none"', 'fill="' + token('--bg') + '"'));
+      });
+      out.push('<circle cx="' + f1(cx) + '" cy="' + cy + '" r="62" fill="' + token('--fg') + '"/>');
+      out.push(text(c, cx, cy - 4, ['Return of', 'capital first'], '--bg', 'text-anchor="middle" font-weight="700"'));
+      mount(el, w, cy + 110, hubLabel(), out);
+    } else {
+      out.push('<circle cx="' + f1(cx) + '" cy="58" r="54" fill="' + token('--fg') + '"/>');
+      out.push(text(c, cx, 54, ['Return of', 'capital first'], '--bg', 'text-anchor="middle" font-weight="700"'));
+      SPOKES.forEach(function (s, i) {
+        var y = 128 + i * 64;
+        out.push('<line x1="' + f1(cx) + '" y1="' + (y - 16) + '" x2="' + f1(cx) + '" y2="' + y + '" stroke="' + token('--accent-2') + '" stroke-width="2"/>');
+        out.push(box(c, 0, y, w, s, { stroke: '--accent-2' }));
+      });
+      mount(el, w, 128 + SPOKES.length * 64, hubLabel(), out);
+    }
+    function hubLabel() {
+      return 'Hub diagram: return of capital first, at the center. Around it: ' + SPOKES.map(function (s) { return s.join(' '); }).join('; ') + '.';
+    }
+  }
+
   // ---- Fig. 15.1: code multiplies whatever the rule is ----
 
   function drawMultiplier(el) {
@@ -2001,7 +2152,7 @@
       { r: 0.1, token: '--accent', width: 3 }];
     var N = 10, c = context(el), token = c.token, w = c.width, narrow = w < 420;
     var h = Math.round(clamp(w * 0.55, 260, 380));
-    var m = { top: 26, right: narrow ? 70 : 170, bottom: 30, left: 44 };
+    var m = { top: 26, right: narrow ? 70 : 230, bottom: 30, left: 44 };
     var x = function (k) { return m.left + (k / N) * (w - m.left - m.right); };
     var y = function (v) { return h - m.bottom - v * (h - m.top - m.bottom); };
     var out = [];
@@ -3010,6 +3161,7 @@
     fees: drawFees, pie: drawPie, 'dividend-loop': drawDividendLoop, 'dividend-income': drawDividendIncome,
     drift: drawDrift, 'core-default': drawCoreDefault,
     hedge: drawHedge,
+    'ips-page': drawIpsPage, 'ips-map': drawIpsMap, 'up-down': drawUpDown, review: drawReview, hub: drawHub,
     multiplier: drawMultiplier, 'automation-steps': drawAutomationSteps, overfit: drawOverfit, 'kill-switch': drawKillSwitch,
     'pdt-timeline': drawPdtTimeline, settlement: drawSettlement, 'holding-line': drawHoldingLine, 'loss-carry': drawLossCarry,
     'wash-sale': drawWashSale, 'sixty-forty': drawSixtyForty, proposal: drawProposal,
@@ -3039,7 +3191,7 @@
     module.exports = {
       grow: grow, breakeven: breakeven, futureValue: futureValue, drift: drift,
       mostUnderweight: mostUnderweight, dividendIncome: dividendIncome, pie: PIE,
-      hedgedValue: hedgedValue, interpolate: interpolate, lineFit: lineFit, overfit: OVERFIT, lossCarry: lossCarry, split6040: split6040, builtForCounts: builtForCounts, rMultiple: rMultiple, journalRows: JOURNAL_ROWS, sizedPath: sizedPath, adherence: adherence, streakLeft: streakLeft, sizedTrades: SIZED, longCallPL: longCallPL, tuitionPath: tuitionPath, coveredCallPL: coveredCallPL, shortPutPL: shortPutPL, wheel: WHEEL, rewardRisk: rewardRisk, positionSize: positionSize, runningAverage: runningAverage, traderA: TRADER_A, timeValueLeft: timeValueLeft, promoted: promoted,
+      hedgedValue: hedgedValue, ipsSections: IPS_SECTIONS, interpolate: interpolate, lineFit: lineFit, overfit: OVERFIT, lossCarry: lossCarry, split6040: split6040, builtForCounts: builtForCounts, rMultiple: rMultiple, journalRows: JOURNAL_ROWS, sizedPath: sizedPath, adherence: adherence, streakLeft: streakLeft, sizedTrades: SIZED, longCallPL: longCallPL, tuitionPath: tuitionPath, coveredCallPL: coveredCallPL, shortPutPL: shortPutPL, wheel: WHEEL, rewardRisk: rewardRisk, positionSize: positionSize, runningAverage: runningAverage, traderA: TRADER_A, timeValueLeft: timeValueLeft, promoted: promoted,
       strategies: STRATEGIES, attentionShare: attentionShare, concentrationHit: concentrationHit,
       expectancy: expectancy, breakevenPayoff: breakevenPayoff, netAfterCosts: netAfterCosts, traderB: TRADER_B,
       roundTrip: roundTrip, lossPath: lossPath,

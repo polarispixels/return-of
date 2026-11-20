@@ -4,6 +4,23 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-11-20
+
+Chapter 16 gets a figure for every section, and every chapter now has one per section.
+
+### Added
+
+- Chapter 16, Your Investment Policy Statement: five figures. Fig. 16.1, one page answering four questions. Fig. 16.2, the template's nine sections, which have blanks and which are set by the method, with the chapter behind each. Fig. 16.3, up on proof, down on neglect. Fig. 16.4, the review cycle and a new dated version. Fig. 16.5, every rule serving return of capital.
+- A deploy check that Fig. 16.2 lists the template's sections in order and marks the blanks correctly.
+
+### Changed
+
+- Chapter 16: the tuition row of the template states Chapter 9's rule (when the budget runs out, the month is over), and the open question asks only how large the budget is.
+
+### Fixed
+
+- Fig. 10.5: on wide screens, the longest end label ran past the chart's edge.
+
 ## [0.21.0] - 2026-11-20
 
 Chapter 15 gets a figure for every section.

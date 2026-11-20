@@ -4,6 +4,16 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-20
+
+Chapter 2 gets a figure for every section.
+
+### Added
+
+- Chapter 2, Every Dollar Has a Job: four figures. Fig. 2.1, how long a fall takes to recover at an assumed 7% a year. Fig. 2.2, the four buckets filling in order. Fig. 2.3, a $10,000 bill paid without and with a cushion. Fig. 2.4, what a satellite losing half costs the whole portfolio at three sizes.
+- Fixed bucket colors that match Chapter 6: cushion and reserve in grays, core in black, satellite in red.
+- Deploy checks for the new arithmetic: recovery years, the forced sale, and the hit to the whole portfolio.
+
 ## [0.5.0] - 2026-11-20
 
 Chapter 6 gets a figure for every section: the first pass at a visual language for the book.

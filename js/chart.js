@@ -43,6 +43,15 @@
     return { cash: cash, reinvested: cash * Math.pow(1 + yieldRate, year - 1) };
   }
 
+  // Years to get back to even after falling by the fraction `loss`, growing at `rate` a year.
+  function recoveryYears(loss, rate) { return Math.log(1 / (1 - loss)) / Math.log(1 + rate); }
+
+  // To raise `cash` after a fall of `drop`, you sell shares that were worth this much before it.
+  function forcedSale(cash, drop) { return cash / (1 - drop); }
+
+  // Fraction of the whole portfolio lost when a slice of `share` loses the fraction `loss`.
+  function portfolioHit(share, loss) { return share * loss; }
+
   // The example pie used across Chapter 6: one set of holdings, one set of colors.
   var PIE = {
     names: ['U.S. stocks', 'International stocks', 'Bonds'],
@@ -439,18 +448,187 @@
       'goes back to the core. Not to scale.', out);
   }
 
+  // ---- Chapter 2 colors: one per bucket, matching Chapter 6 (core --fg, satellite --accent) ----
+
+  var BUCKETS = [
+    { name: 'Cushion', lines: ['Emergencies and', 'near-term bills'], token: '--muted', opacity: 1 },
+    { name: 'Opportunity reserve', lines: ['Cash ready for', 'a setup'], token: '--muted', opacity: 0.45 },
+    { name: 'Core', lines: ['Long-term growth,', 'little attention'], token: '--fg', opacity: 1 },
+    { name: 'Satellite', lines: ['Active work,', 'capped small'], token: '--accent', opacity: 1 }
+  ];
+
+  function block(c, x, y, bw, bh, b, labels) {
+    var dark = b.opacity === 1;
+    return '<rect x="' + f1(x) + '" y="' + f1(y) + '" width="' + f1(bw) + '" height="' + bh + '" fill="' + c.token(b.token) +
+      '" fill-opacity="' + b.opacity + '"/>' +
+      text(c, x + 10, y + 22, labels[0], dark ? '--bg' : '--fg', 'font-weight="700"') +
+      (labels[1] ? text(c, x + 10, y + 40, labels[1], dark ? '--bg' : '--fg') : '');
+  }
+
+  // ---- Fig. 2.1: how long a fall takes to recover ----
+
+  function drawRecovery(el) {
+    var LOSSES = [0.1, 0.2, 0.3, 0.4, 0.5], RATE = 0.07, NEED = 2, X_MAX = 12, ROW = 30, BAR = 14;
+    var c = context(el), token = c.token, w = c.width;
+    var m = { top: 30, right: 64, bottom: 26, left: 48 };
+    var h = m.top + LOSSES.length * ROW + m.bottom;
+    var sx = function (v) { return m.left + (v / X_MAX) * (w - m.left - m.right); };
+    var out = [];
+
+    out.push('<rect x="' + f1(sx(0)) + '" y="' + m.top + '" width="' + f1(sx(NEED) - sx(0)) + '" height="' + LOSSES.length * ROW +
+      '" fill="' + token('--accent') + '" fill-opacity="0.14"/>');
+    out.push('<rect x="' + m.left + '" y="4" width="12" height="12" fill="' + token('--accent') + '" fill-opacity="0.14" stroke="' +
+      token('--accent') + '" stroke-width="1"/>');
+    out.push(text(c, m.left + 20, 14, 'Money you may need within ' + NEED + ' years', '--fg'));
+    (w < 420 ? [0, 4, 8, 12] : [0, 2, 4, 6, 8, 10, 12]).forEach(function (t) {
+      out.push('<line x1="' + f1(sx(t)) + '" x2="' + f1(sx(t)) + '" y1="' + m.top + '" y2="' + (h - m.bottom) + '" stroke="' +
+        token('--muted') + '" stroke-width="0.5"/>');
+      out.push(text(c, sx(t), h - 8, t === X_MAX ? t + ' yrs' : String(t), '--muted', 'text-anchor="middle"'));
+    });
+    LOSSES.forEach(function (loss, i) {
+      var top = m.top + i * ROW + (ROW - BAR) / 2, yrs = recoveryYears(loss, RATE);
+      out.push(text(c, m.left - 8, top + BAR - 2, '&minus;' + Math.round(loss * 100) + '%', '--fg', 'text-anchor="end" font-weight="700"'));
+      out.push('<rect x="' + f1(sx(0)) + '" y="' + f1(top) + '" width="' + f1(sx(yrs) - sx(0)) + '" height="' + BAR + '" fill="' + token('--fg') + '"/>');
+      out.push(text(c, sx(yrs) + 6, top + BAR - 2, yrs.toFixed(1) + ' yrs', '--fg'));
+    });
+    out.push('<line x1="' + m.left + '" x2="' + m.left + '" y1="' + (m.top - 4) + '" y2="' + (h - m.bottom) + '" stroke="' +
+      token('--fg') + '" stroke-width="2"/>');
+
+    mount(el, w, h, 'Bar chart: years to get back to even after a fall, growing at an assumed 7% a year. ' +
+      LOSSES.map(function (l) { return 'Down ' + Math.round(l * 100) + '%: ' + recoveryYears(l, RATE).toFixed(1) + ' years'; }).join('. ') +
+      '. Money needed within 2 years cannot wait that long.', out);
+  }
+
+  // ---- Fig. 2.2: fill the buckets in order ----
+  // A staircase of buckets. New money pours into the first; each overflows into the next.
+
+  function drawBuckets(el) {
+    var FILL = [1, 1, 0.7, 0.35], CAP = 0.5;
+    var c = context(el), token = c.token, w = c.width;
+    var bw = clamp(w * 0.16, 56, 90), bh = 48, row = 66, step = clamp(w * 0.1, 34, 110), y0 = 44, out = [];
+    var bx = function (i) { return i * step; }, by = function (i) { return y0 + i * row; };
+
+    out.push(text(c, 0, 14, 'New money', '--fg', 'font-weight="700"'));
+    out.push(arrow(bw / 2, 20, bw / 2, y0 - 4, token('--fg')));
+
+    BUCKETS.forEach(function (b, i) {
+      var x = bx(i), y = by(i), fh = (bh - 4) * FILL[i];
+      out.push('<rect x="' + f1(x + 3) + '" y="' + f1(y + bh - 2 - fh) + '" width="' + f1(bw - 6) + '" height="' + f1(fh) + '" fill="' +
+        token(b.token) + '" fill-opacity="' + b.opacity + '"/>');
+      out.push('<path d="M' + f1(x) + ',' + y + ' v' + bh + ' h' + f1(bw) + ' v-' + bh + '" fill="none" stroke="' + token('--fg') +
+        '" stroke-width="2"/>');
+      if (i === BUCKETS.length - 1) {
+        var cy = y + bh - 2 - (bh - 4) * CAP;
+        out.push('<line x1="' + f1(x - 4) + '" x2="' + f1(x + bw + 4) + '" y1="' + f1(cy) + '" y2="' + f1(cy) + '" stroke="' +
+          token('--fg') + '" stroke-width="1.5" stroke-dasharray="4 3"/>');
+      }
+      var lx = x + step + bw / 2 + 14;
+      out.push(text(c, lx, y + 12, (i + 1) + '. ' + b.name, '--fg', 'font-weight="700"'));
+      out.push(text(c, lx, y + 28, b.lines, '--fg'));
+      // Overflow: from the right lip of this bucket into the next one.
+      if (i < BUCKETS.length - 1) {
+        var nx = bx(i + 1) + bw / 2;
+        out.push('<path d="M' + f1(x + bw) + ',' + (y - 2) + ' H' + f1(nx) + ' V' + (by(i + 1) - 10) + '" fill="none" stroke="' +
+          token('--fg') + '" stroke-width="2"/>');
+        out.push(arrowhead(nx, by(i + 1) - 3, Math.PI / 2, token('--fg')));
+      }
+    });
+
+    mount(el, w, by(3) + bh + 6, 'Diagram: new money fills four buckets in order, each overflowing into the next. ' +
+      BUCKETS.map(function (b, i) { return (i + 1) + ', ' + b.name + ': ' + b.lines.join(' '); }).join('. ') +
+      '. The satellite has a cap.', out);
+  }
+
+  // ---- Fig. 2.3: a $10,000 bill, without and with a cushion ----
+
+  function drawCushion(el) {
+    var BILL = 10000, DROP = 0.3;
+    var c = context(el), token = c.token, w = c.width;
+    var side = w >= 560, pw = side ? (w - 32) / 2 : w, PH = 226, out = [];
+
+    function panel(ox, oy, cushion) {
+      var billW = 120, billX = ox + pw / 2 - billW / 2, billY = oy + 28, rowY = oy + 112, bh = 64;
+      out.push(text(c, ox, oy + 14, cushion ? '2. With a cushion' : '1. Without a cushion', '--muted', 'font-weight="700"'));
+      out.push('<rect x="' + f1(billX) + '" y="' + billY + '" width="' + billW + '" height="34" fill="none" stroke="' +
+        token('--fg') + '" stroke-width="2"/>');
+      out.push(text(c, billX + billW / 2, billY + 22, money(BILL) + ' bill', '--fg', 'text-anchor="middle" font-weight="700"'));
+      if (!cushion) {
+        var cw = pw * 0.62;
+        out.push(block(c, ox, rowY, cw, bh, BUCKETS[2], ['Core', 'Down ' + Math.round(DROP * 100) + '% this year']));
+        out.push(arrow(ox + cw / 2, rowY - 4, billX + billW / 2, billY + 40, token('--accent')));
+        out.push(text(c, ox, rowY + bh + 22, ['Sells shares that were worth', money(forcedSale(BILL, DROP)) + ' before the drop.'], '--fg'));
+      } else {
+        var third = (pw - 12) / 3;
+        out.push(block(c, ox, rowY, third, bh, BUCKETS[0], ['Cushion']));
+        out.push(block(c, ox + third + 6, rowY, third, bh, BUCKETS[1], ['Reserve']));
+        out.push(block(c, ox + 2 * (third + 6), rowY, third, bh, BUCKETS[2], ['Core']));
+        out.push(arrow(ox + third / 2, rowY - 4, billX + billW / 2, billY + 40, token('--accent')));
+        out.push(text(c, ox, rowY + bh + 22, ['Paid from the cushion.', 'Reserve and core untouched.'], '--fg'));
+      }
+    }
+
+    panel(0, 0, false);
+    if (side) panel(pw + 32, 0, true);
+    else panel(0, PH + 16, true);
+
+    mount(el, w, side ? PH : PH * 2 + 16, 'Diagram in two panels. Without a cushion, a ' + money(BILL) +
+      ' bill is paid by selling core shares after a 30% fall, using shares that were worth ' + money(forcedSale(BILL, DROP)) +
+      '. With a cushion, the bill is paid from the cushion and the reserve and core are untouched.', out);
+  }
+
+  // ---- Fig. 2.4: a capped satellite cannot sink the whole ----
+  // Three 10 by 10 grids, each the whole portfolio. Satellite cells sit at the end;
+  // the half it loses is drawn hollow.
+
+  function drawSatelliteCap(el) {
+    var SHARES = [0.05, 0.1, 0.2], LOSS = 0.5;
+    var c = context(el), token = c.token, w = c.width;
+    var gap = 16, pw = Math.min(200, (w - gap * 2) / 3), cell = pw / 10, top = 30, out = [];
+    var start = (w - (pw * 3 + gap * 2)) / 2;
+
+    out.push('<rect x="' + f1(start) + '" y="4" width="10" height="10" fill="' + token('--accent') + '"/>');
+    out.push(text(c, start + 15, 13, 'Satellite', '--fg'));
+    out.push('<rect x="' + f1(start + 82.5) + '" y="4.5" width="9" height="9" fill="none" stroke="' + token('--accent') + '" stroke-width="1.5"/>');
+    out.push(text(c, start + 97, 13, 'Lost', '--fg'));
+    out.push('<rect x="' + f1(start + 140) + '" y="4" width="10" height="10" fill="' + token('--muted') + '" fill-opacity="0.3"/>');
+    out.push(text(c, start + 155, 13, 'Everything else', '--fg'));
+
+    SHARES.forEach(function (share, k) {
+      var ox = start + k * (pw + gap), n = Math.round(share * 100), lost = Math.round(n * LOSS);
+      for (var i = 0; i < 100; i++) {
+        var x = ox + (i % 10) * cell + 0.75, y = top + Math.floor(i / 10) * cell + 0.75, s = cell - 1.5;
+        var sat = i >= 100 - n, gone = i >= 100 - lost;
+        out.push(gone
+          ? '<rect x="' + f1(x + 0.75) + '" y="' + f1(y + 0.75) + '" width="' + f1(s - 1.5) + '" height="' + f1(s - 1.5) +
+            '" fill="none" stroke="' + token('--accent') + '" stroke-width="1.5"/>'
+          : '<rect x="' + f1(x) + '" y="' + f1(y) + '" width="' + f1(s) + '" height="' + f1(s) + '" fill="' +
+            token(sat ? '--accent' : '--muted') + '"' + (sat ? '' : ' fill-opacity="0.3"') + '/>');
+      }
+      var ly = top + pw + 20;
+      out.push(text(c, ox, ly, n + '% satellite', '--fg', 'font-weight="700"'));
+      out.push(text(c, ox, ly + 16, ['loses half:', 'total &minus;' + f1(portfolioHit(share, LOSS) * 100) + '%'], '--fg'));
+    });
+
+    mount(el, w, Math.round(top + pw + 20 + 16 + 15 + 8), 'Three grids of 100 squares, each the whole portfolio. ' +
+      SHARES.map(function (s) {
+        return 'A ' + Math.round(s * 100) + '% satellite that loses half costs ' + f1(portfolioHit(s, LOSS) * 100) + '% of the total';
+      }).join('. ') + '.', out);
+  }
+
   // ---- Registry and wiring ----
 
   var CHARTS = {
     compound: drawCompound, breakeven: drawBreakeven,
     fees: drawFees, pie: drawPie, 'dividend-loop': drawDividendLoop, 'dividend-income': drawDividendIncome,
-    drift: drawDrift, 'core-default': drawCoreDefault
+    drift: drawDrift, 'core-default': drawCoreDefault,
+    recovery: drawRecovery, buckets: drawBuckets, cushion: drawCushion, 'satellite-cap': drawSatelliteCap
   };
 
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
       grow: grow, breakeven: breakeven, futureValue: futureValue, drift: drift,
-      mostUnderweight: mostUnderweight, dividendIncome: dividendIncome, pie: PIE, charts: Object.keys(CHARTS)
+      mostUnderweight: mostUnderweight, dividendIncome: dividendIncome, pie: PIE,
+      recoveryYears: recoveryYears, forcedSale: forcedSale, portfolioHit: portfolioHit, charts: Object.keys(CHARTS)
     };
   }
   if (typeof document === 'undefined') return;

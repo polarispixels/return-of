@@ -97,6 +97,17 @@ if (typeof chart.grow !== 'function' || typeof chart.breakeven !== 'function' ||
     const p = chart.pie;
     if (!p || p.target.reduce((a, b) => a + b, 0) !== 100 || p.now.reduce((a, b) => a + b, 0) !== 100) fail('chart.pie: target and now must each sum to 100');
   }
+  // Chapter 2 figures.
+  if (typeof chart.recoveryYears !== 'function') fail('js/chart.js: must export recoveryYears');
+  else {
+    if (chart.recoveryYears(0.5, 0.07).toFixed(1) !== '10.2') fail('chart.recoveryYears: a 50% fall at 7% a year takes 10.2 years');
+    if (chart.recoveryYears(0.3, 0.07).toFixed(1) !== '5.3') fail('chart.recoveryYears: a 30% fall at 7% a year takes 5.3 years');
+    if (!near(chart.recoveryYears(0.5, 1), 1)) fail('chart.recoveryYears: a 50% fall at 100% a year takes 1 year');
+  }
+  if (typeof chart.forcedSale !== 'function') fail('js/chart.js: must export forcedSale');
+  else if (chart.forcedSale(10000, 0.3).toFixed(2) !== '14285.71') fail('chart.forcedSale: $10,000 after a 30% fall uses shares worth $14,285.71 before it');
+  if (typeof chart.portfolioHit !== 'function') fail('js/chart.js: must export portfolioHit');
+  else if (!near(chart.portfolioHit(0.1, 0.5), 0.05)) fail('chart.portfolioHit: a 10% satellite losing half costs 5% of the total');
   if (typeof chart.dividendIncome !== 'function') fail('js/chart.js: must export dividendIncome');
   else {
     const y1 = chart.dividendIncome(5000, 0.03, 0.06, 1), y20 = chart.dividendIncome(5000, 0.03, 0.06, 20);

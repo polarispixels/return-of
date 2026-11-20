@@ -34,11 +34,38 @@
 <p><strong>Long Options</strong> (Strategy 10) means buying calls or puts on a thesis and holding weeks to months. Risk is high and effort is medium. The buyer can lose the entire premium. Time decay, which helped you in Chapter 8, now works against you every day. You can be right about the direction and still lose, if the move is too small or too slow.</p>
 <p><strong>Day Trading</strong> (Strategy 11) means buying and selling stocks within the same day. Risk is high and effort is very high. It demands your full attention during market hours, fast decisions, and strict control of your own behavior.</p>
 <p><strong>0DTE Scalping</strong> (Strategy 12) means trading options that expire the same day, held for seconds to minutes. Risk and effort are both very high. The options lose their value fast, and a position can go to zero within the day.</p>
+
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 9.1</span>
+    <h3 class="figure-title">How long each strategy holds</h3>
+  </div>
+  <div class="chart" data-chart="holding-periods"></div>
+  <p class="figure-note">Holding periods as the text describes them, on a log scale from one second to thirty years; the bar ends are rough. Swing Trading (Chapter 7) and the Index Core (Chapter 6) are shown for comparison.</p>
+</figure>
 <p>None of these is a place to build wealth on a schedule. They are skills with a price, and many people pay that price for a long time.</p>
+
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 9.2</span>
+    <h3 class="figure-title">Right about the direction, and still a loss</h3>
+  </div>
+  <div class="chart" data-chart="long-call"></div>
+  <p class="figure-note">Arithmetic only, with round, hypothetical numbers: one call with a $50 strike, bought for $2.00 per share with the stock at $50, held to expiration, no fees. Profit or loss = (how far the price ends above $50) &minus; $2, times 100. Time decay, Fig. 5.3, is what the buyer pays for waiting.</p>
+</figure>
 
 <h2>The tuition budget</h2>
 <p>The method treats this work as paying for an education. Set a fixed monthly tuition budget. Once it is set aside, count it as already spent. If it goes to zero, the month is over. You do not top it up, and you do not borrow from the core or from the cushion.</p>
 <p>Treating the money as spent changes behavior. You stop trying to win it back. A loss is a lesson that was already paid for.</p>
+
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 9.3</span>
+    <h3 class="figure-title">Tuition, counted as spent</h3>
+  </div>
+  <div class="chart" data-chart="tuition-months"></div>
+  <p class="figure-note">Two made-up months, as the share of the monthly budget left. The dollar amount of the budget is an open question below. When it reaches zero the month is over; the next month starts with the same fixed budget.</p>
+</figure>
 
 <blockquote class="pull"><p>Once it is set aside, count it as already spent.</p></blockquote>
 
@@ -47,8 +74,26 @@
 <p>Expectancy is the average result per trade, counting wins and losses together. Positive expectancy over about 50 trades is not proof, but it is the minimum evidence the method accepts. Chapter 10 covers the math.</p>
 <p>Real trading will differ from paper. Fills are worse, and nerves are real. Start small, even inside the budget.</p>
 
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 9.4</span>
+    <h3 class="figure-title">Fifty paper trades, then the gate</h3>
+  </div>
+  <div class="chart" data-chart="paper-gate"></div>
+  <p class="figure-note">Trader A from Chapter 3 as 50 paper trades, in the same made-up order as Fig. 7.5. Positive expectancy over about 50 is the minimum evidence the method accepts, not proof.</p>
+</figure>
+
 <h2>The daily trade cap</h2>
 <p>Your Investment Policy Statement includes a daily trade cap. FINRA replaced the pattern day trader rule effective June 4, 2026, and brokers may phase the change in until October 20, 2027, so the old outside speed bump is going away (Chapter 14 has the details and the source). Your own cap takes its place. Set a number, write it down, and stop when you reach it. Overtrading is the usual way a tuition budget disappears.</p>
+
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 9.5</span>
+    <h3 class="figure-title">One day under a trade cap</h3>
+  </div>
+  <div class="chart" data-chart="trade-cap"></div>
+  <p class="figure-note">A made-up day with an example cap of 3 trades; your number is an open question below. Once the cap is reached, later setups are skipped, however good they look.</p>
+</figure>
 <p>The same demotion rule applies as everywhere in the Ladder. If the morning routine lapses for 10 trading days, the active slice returns to the core.</p>
 
 <h2>Open questions</h2>
@@ -79,5 +124,6 @@
   </div>
 
   <script src="../js/version.js"></script>
+  <script src="../js/chart.js"></script>
 </body>
 </html>

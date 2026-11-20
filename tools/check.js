@@ -110,6 +110,16 @@ if (typeof chart.grow !== 'function' || typeof chart.breakeven !== 'function' ||
     if (chart.lossPath(10000, 0.07, 30, 10, 0.5).toFixed(0) !== '38061') fail('chart.lossPath: Fig. 1.3 ends at $38,061 with the fall');
     if (chart.lossPath(10000, 0.07, 30, 99, 0.5).toFixed(0) !== '76123') fail('chart.lossPath: Fig. 1.3 ends at $76,123 without it');
   }
+  // Chapter 9 figures.
+  if (typeof chart.longCallPL !== 'function' || typeof chart.tuitionPath !== 'function') fail('js/chart.js: must export longCallPL and tuitionPath');
+  else {
+    if (!near(chart.longCallPL(60, 50, 2), 800) || !near(chart.longCallPL(51, 50, 2), -100) || !near(chart.longCallPL(40, 50, 2), -200)) {
+      fail('chart.longCallPL: a $50 call bought for $2 makes $800 at $60, loses $100 at $51, and at most $200');
+    }
+    const t = chart.tuitionPath(100, [-30, 10, -50, -40, 20]);
+    if (t.path.join() !== '100,70,80,30,0' || t.over !== 4) fail('chart.tuitionPath: the budget stops at zero, and the month is over');
+    if (chart.tuitionPath(100, [-10, 5]).over !== -1) fail('chart.tuitionPath: a month that never hits zero is not over');
+  }
   // Chapter 8 figures: the payoffs, and the Wheel table's own numbers.
   if (typeof chart.coveredCallPL !== 'function' || typeof chart.shortPutPL !== 'function' || !Array.isArray(chart.wheel)) {
     fail('js/chart.js: must export coveredCallPL, shortPutPL, and wheel');

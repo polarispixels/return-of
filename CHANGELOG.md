@@ -4,6 +4,15 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-11-20
+
+Chapter 9 gets a figure for every section.
+
+### Added
+
+- Chapter 9, The Casino Floor: five figures. Fig. 9.1, holding periods on a log time scale, from 0DTE's seconds to the core's years. Fig. 9.2, a long call that is right about the direction and still loses. Fig. 9.3, two made-up months of tuition: one hits zero and ends; the next starts with the same fixed budget. Fig. 9.4, fifty paper trades, then the Level 4 gate. Fig. 9.5, one day under an example cap of 3 trades.
+- Deploy checks for the long call payoff and the tuition path.
+
 ## [0.14.0] - 2026-11-20
 
 Chapter 8 gets a figure for every section.

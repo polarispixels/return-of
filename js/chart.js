@@ -55,6 +55,21 @@
     ['Systematic', 'Depends on rules', 'High upfront, low ongoing', 'systematic']
   ].map(function (r, i) { return { num: i + 1, name: r[0], risk: r[1], effort: r[2], group: r[3] }; });
 
+  // Profit or loss at expiration on one call bought at `strike` for `premium` per share.
+  function longCallPL(price, strike, premium) { return (Math.max(0, price - strike) - premium) * 100; }
+
+  // A month of tuition: the budget at the start, then after each day's result, stopping at
+  // zero. `over` is the index in `path` where it hit zero (the month ends there), or -1.
+  function tuitionPath(start, changes) {
+    var left = start, path = [start], over = -1;
+    for (var i = 0; i < changes.length && over < 0; i++) {
+      left = Math.max(0, left + changes[i]);
+      path.push(left);
+      if (left === 0) over = path.length - 1;
+    }
+    return { path: path, over: over };
+  }
+
   // Profit or loss at expiration on 100 shares bought at `basis`, with one call sold at
   // `strike` for `premium` per share. Above the strike, the shares are called away.
   function coveredCallPL(price, basis, strike, premium) { return (Math.min(price, strike) - basis + premium) * 100; }
@@ -1068,6 +1083,186 @@
       'expectancy and adherence. If it shows an edge, the satellite may grow within the rules. If not, the money goes back to the core.', out);
   }
 
+  // ---- Fig. 9.1: how long each strategy holds, on one time scale ----
+  // A log scale of seconds, from one second to thirty years.
+
+  function drawHoldingPeriods(el) {
+    var MIN = 60, HOUR = 3600, DAY = 86400, WEEK = 7 * DAY, MONTH = 30 * DAY, YEAR = 365 * DAY;
+    var ROWS = [
+      { num: 12, name: '0DTE Scalping', range: 'Seconds to minutes', from: 5, to: 30 * MIN },
+      { num: 11, name: 'Day Trading', range: 'Within the day', from: MIN, to: 6.5 * HOUR },
+      { num: 9, name: 'Swing Trading', range: 'Days to weeks', from: DAY, to: 4 * WEEK },
+      { num: 10, name: 'Long Options', range: 'Weeks to months', from: WEEK, to: 6 * MONTH },
+      { num: 1, name: 'Index Core', range: 'Many years', from: 3 * YEAR, to: 30 * YEAR, open: true }
+    ];
+    var TICKS = [[1, '1 sec'], [MIN, '1 min'], [HOUR, '1 hour'], [DAY, '1 day'], [WEEK, '1 week'], [MONTH, '1 month'], [YEAR, '1 year'], [10 * YEAR, '10 yrs']];
+    var c = context(el), token = c.token, w = c.width, narrow = w < 480, ROW = 46, top = 6, out = [];
+    var lo = Math.log(1), hi = Math.log(30 * YEAR);
+    var x = function (sec) { return 4 + ((Math.log(sec) - lo) / (hi - lo)) * (w - 8); };
+
+    ROWS.forEach(function (r, i) {
+      var y = top + i * ROW, tok = GROUP_TOKEN[STRATEGIES[r.num - 1].group] || '--accent-2';
+      out.push(chip(c, 10, y + 10, r.num, 9));
+      out.push(text(c, 26, y + 14, r.name + ' <tspan fill="' + token('--muted') + '" font-weight="400">' + r.range + '</tspan>', '--fg', 'font-weight="700"'));
+      out.push('<rect x="' + f1(x(r.from)) + '" y="' + (y + 22) + '" width="' + f1(x(r.to) - x(r.from)) + '" height="12" fill="' + token(tok) + '"/>');
+      if (r.open) out.push(arrowhead(x(r.to) + 1, y + 28, 0, token(tok)));
+    });
+    var axisY = top + ROWS.length * ROW + 4;
+    out.push('<line x1="4" x2="' + f1(w - 4) + '" y1="' + axisY + '" y2="' + axisY + '" stroke="' + token('--fg') + '" stroke-width="1.5"/>');
+    TICKS.forEach(function (t, k) {
+      if (narrow && k % 2) return;
+      out.push('<line x1="' + f1(x(t[0])) + '" x2="' + f1(x(t[0])) + '" y1="' + top + '" y2="' + (axisY + 4) + '" stroke="' + token('--muted') +
+        '" stroke-width="0.5"/>');
+      out.push(text(c, x(t[0]), axisY + 18, t[1], '--muted', 'text-anchor="' + (k === 0 ? 'start' : k === TICKS.length - 1 ? 'end' : 'middle') + '"'));
+    });
+
+    mount(el, w, axisY + 26, 'Holding periods on a time scale from one second to thirty years: ' + ROWS.map(function (r) {
+      return r.name + ', ' + r.range.toLowerCase();
+    }).join('; ') + '. The three casino strategies sit far to the left of the core.', out);
+  }
+
+  // ---- Fig. 9.2: a long call can be right and still lose ----
+
+  function drawLongCall(el) {
+    var STRIKE = 50, PREMIUM = 2, X_MIN = 40, X_MAX = 65, BE = STRIKE + PREMIUM;
+    var f = payoffFrame(el, X_MIN, X_MAX, -500, 1500, [-500, 0, 500, 1000, 1500]), c = f.c, token = c.token, out = f.out;
+    var call = function (p) { return longCallPL(p, STRIKE, PREMIUM); };
+
+    // Right about the direction (above today's $50), and still a loss: from the strike to break-even.
+    out.push('<rect x="' + f1(f.x(STRIKE)) + '" y="' + f1(f.y(0)) + '" width="' + f1(f.x(BE) - f.x(STRIKE)) + '" height="' +
+      f1(f.y(-PREMIUM * 100) - f.y(0)) + '" fill="' + token('--accent') + '" fill-opacity="0.3"/>');
+    out.push('<rect x="' + f1(f.x(X_MIN)) + '" y="' + f1(f.y(0)) + '" width="' + f1(f.x(STRIKE) - f.x(X_MIN)) + '" height="' +
+      f1(f.y(-PREMIUM * 100) - f.y(0)) + '" fill="' + token('--accent') + '" fill-opacity="0.1"/>');
+    out.push(polyline(f.curve(call), token('--fg'), 3));
+    out.push('<line x1="' + f1(f.x(BE)) + '" x2="' + f1(f.x(BE)) + '" y1="' + f.m.top + '" y2="' + f1(f.h - f.m.bottom) + '" stroke="' +
+      token('--muted') + '" stroke-width="1" stroke-dasharray="2 3"/>');
+    out.push(text(c, f.x(BE) + 4, f.m.top + 12, (f.narrow ? '' : 'Break-even ') + '$' + BE, '--muted'));
+    if (f.narrow) {
+      f.legend([{ name: 'Long call', token: '--fg' }, { name: 'Right, and still lose', token: '--accent', area: true }]);
+    } else {
+      out.push(text(c, f.x(X_MAX) + 8, f.y(call(X_MAX)) + 4, ['Long call:', 'bought $' + STRIKE + ' for $' + PREMIUM], '--fg', 'font-weight="700"'));
+      out.push(text(c, f.x(X_MIN) + 6, f.y(-PREMIUM * 100) + 18, 'Most it can lose: the $' + PREMIUM * 100 + ' premium', '--accent', 'font-weight="700"'));
+      out.push(text(c, f.x(STRIKE + 1), f.y(600), ['Right about the', 'direction, and', 'still a loss'], '--accent', 'text-anchor="middle" font-weight="700"'));
+      out.push('<line x1="' + f1(f.x(STRIKE + 1)) + '" x2="' + f1(f.x(STRIKE + 1)) + '" y1="' + f1(f.y(600) + 34) + '" y2="' + f1(f.y(-60)) + '" stroke="' +
+        token('--accent') + '" stroke-width="1.5"/>');
+    }
+
+    mount(el, f.w, f.h, 'Payoff chart at expiration for one $50 call bought for $2, with the stock at $50 today. Below $50 it loses ' +
+      'the whole $200. Between $50 and $52 the stock rose, and the call still loses. Above $52 it makes money.', out);
+  }
+
+  // ---- Fig. 9.3: two months of tuition ----
+
+  var TUITION = [
+    [-12, 4, -18, -6, 8, -15, -22, 5, -14, -10, -20],
+    [-6, 9, -12, 14, -5, -8, 11, -9, -4, 7, -6, 5, -8, 3, -3, 6, -7, 2, -5, 4, -2]
+  ];
+
+  function drawTuitionMonths(el) {
+    var DAYS = 21;
+    var c = context(el), token = c.token, w = c.width;
+    var h = Math.round(clamp(w * 0.45, 230, 320));
+    var m = { top: 30, right: 10, bottom: 30, left: 44 };
+    var months = TUITION.map(function (ch) { return tuitionPath(100, ch); });
+    var span = (w - m.left - m.right) / 2;
+    var x = function (k, d) { return m.left + k * span + (d / DAYS) * (span - 12); };
+    var y = function (v) { return h - m.bottom - (v / 120) * (h - m.top - m.bottom); };
+    var out = [];
+
+    hGrid(c, out, m, w, y, [0, 50, 100], function (t) { return t + '%'; });
+    months.forEach(function (mo, k) {
+      out.push(text(c, x(k, 0), 14, 'Month ' + (k + 1), '--fg', 'font-weight="700"'));
+      if (mo.over >= 0) {
+        out.push('<rect x="' + f1(x(k, mo.over)) + '" y="' + m.top + '" width="' + f1(x(k, DAYS) - x(k, mo.over)) + '" height="' +
+          f1(y(0) - m.top) + '" fill="' + token('--muted') + '" fill-opacity="0.12"/>');
+        out.push(w < 420
+          ? text(c, x(k, mo.over) + 5, y(70), ['Month', 'over'], '--accent', 'font-weight="700"')
+          : text(c, (x(k, mo.over) + x(k, DAYS)) / 2, y(70), ['Budget gone:', 'month over'], '--accent', 'text-anchor="middle" font-weight="700"'));
+      }
+      var pts = [];
+      mo.path.forEach(function (v, d) {
+        if (d > 0) pts.push(f1(x(k, d)) + ',' + f1(y(mo.path[d - 1])));
+        pts.push(f1(x(k, d)) + ',' + f1(y(v)));
+      });
+      out.push(polyline(pts, token('--accent'), 2.5));
+      if (mo.over >= 0) out.push('<circle cx="' + f1(x(k, mo.over)) + '" cy="' + f1(y(0)) + '" r="4.5" fill="' + token('--accent') + '"/>');
+      out.push(text(c, x(k, 0), h - 8, 'Day 1', '--muted'));
+      if (k === 1) {
+        out.push('<line x1="' + f1(x(1, 0) - 6) + '" x2="' + f1(x(1, 0) - 6) + '" y1="' + (m.top - 8) + '" y2="' + f1(y(0)) + '" stroke="' + token('--fg') + '" stroke-width="1"/>');
+        var end = mo.path[mo.path.length - 1];
+        out.push(text(c, x(1, DAYS), y(end) + (w < 420 ? 24 : -10), Math.round(end) + '% left', '--fg', 'text-anchor="end" font-weight="700"'));
+      }
+    });
+    if (w >= 420) out.push(text(c, x(1, 0) + 4, y(112), 'Same fixed budget', '--muted'));
+
+    mount(el, w, h, 'Two made-up months of tuition, as the share of the monthly budget left. In month 1 the budget hits zero on day ' +
+      months[0].over + ' and the month is over: no top-ups. Month 2 starts with the same fixed budget and ends with ' +
+      Math.round(months[1].path[months[1].path.length - 1]) + '% left.', out);
+  }
+
+  // ---- Fig. 9.4: fifty paper trades, then the gate ----
+
+  function drawPaperGate(el) {
+    var c = context(el), token = c.token, w = c.width, wide = w >= 560, out = [];
+    var perRow = wide ? 25 : 10, gateW = wide ? 150 : w;
+    var cell = Math.min(22, ((wide ? w - gateW - 40 : w) - 2) / perRow);
+    var rows = Math.ceil(TRADER_A.length / perRow), top = 22;
+
+    out.push(text(c, 0, 14, '50 paper trades', '--fg', 'font-weight="700"'));
+    TRADER_A.forEach(function (v, i) {
+      var cx = (i % perRow) * cell, cy = top + Math.floor(i / perRow) * cell;
+      out.push('<rect x="' + f1(cx + 1) + '" y="' + f1(cy + 1) + '" width="' + f1(cell - 2) + '" height="' + f1(cell - 2) + '" fill="' +
+        token(v > 0 ? '--fg' : '--accent') + '"/>');
+    });
+    var gridBottom = top + rows * cell, avg = runningAverage(TRADER_A)[TRADER_A.length - 1];
+    out.push('<rect x="0" y="' + f1(gridBottom + 10) + '" width="10" height="10" fill="' + token('--fg') + '"/>');
+    out.push(text(c, 15, gridBottom + 19, 'Win', '--fg'));
+    out.push('<rect x="50" y="' + f1(gridBottom + 10) + '" width="10" height="10" fill="' + token('--accent') + '"/>');
+    out.push(text(c, 65, gridBottom + 19, 'Loss', '--fg'));
+
+    var gx = wide ? perRow * cell + 40 : 0, gy = wide ? top : gridBottom + 44;
+    if (wide) out.push(arrow(perRow * cell + 8, top + rows * cell / 2, gx - 4, top + rows * cell / 2, token('--fg')));
+    else out.push(arrow(w / 2, gridBottom + 28, w / 2, gy - 2, token('--fg')));
+    out.push(box(c, gx, gy, gateW, ['Expectancy +' + money(avg) + ':', 'Level 4 opens'], { fill: '--fg' }));
+    out.push(text(c, gx, gy + 70, ['Then start small,', 'even inside the budget'], '--muted'));
+
+    mount(el, w, wide ? Math.max(gridBottom + 28, gy + 96) : gy + 96, 'Fifty paper trades, Trader A from Chapter 3: 20 wins and 30 ' +
+      'losses, an average of plus ' + money(avg) + ' a trade. Positive expectancy over about 50 paper trades opens Level 4. Then start small.', out);
+  }
+
+  // ---- Fig. 9.5: one day under a trade cap ----
+
+  function drawTradeCap(el) {
+    var CAP = 3, OPEN = 9.5, CLOSE = 16;
+    var SETUPS = [{ t: 9.75, taken: true }, { t: 10.4, taken: true }, { t: 11.2, taken: true }, { t: 12.6 }, { t: 13.9 }, { t: 15.1 }];
+    var c = context(el), token = c.token, w = c.width, narrow = w < 420, out = [];
+    var m = { left: 8, right: 8 }, top = 34, axisY = 84;
+    var x = function (hr) { return m.left + ((hr - OPEN) / (CLOSE - OPEN)) * (w - m.left - m.right); };
+    var capAt = SETUPS.filter(function (s) { return s.taken; })[CAP - 1].t;
+
+    out.push(text(c, 0, 14, 'Example cap: ' + CAP + ' trades a day', '--fg', 'font-weight="700"'));
+    out.push('<rect x="' + f1(x(capAt) + 10) + '" y="' + (top - 6) + '" width="' + f1(x(CLOSE) - x(capAt) - 10) + '" height="' + (axisY - top + 6) +
+      '" fill="' + token('--muted') + '" fill-opacity="0.12"/>');
+    out.push(text(c, (x(capAt) + x(CLOSE)) / 2 + 5, top + 8, narrow ? 'Done for the day' : 'Cap reached: done for the day', '--fg', 'text-anchor="middle" font-weight="700"'));
+    out.push('<line x1="' + f1(x(OPEN)) + '" x2="' + f1(x(CLOSE)) + '" y1="' + axisY + '" y2="' + axisY + '" stroke="' + token('--fg') + '" stroke-width="2"/>');
+    SETUPS.forEach(function (s, i) {
+      out.push('<circle cx="' + f1(x(s.t)) + '" cy="' + (axisY - 20) + '" r="8" fill="' + (s.taken ? token('--accent') : token('--bg')) + '" stroke="' +
+        token(s.taken ? '--accent' : '--muted') + '" stroke-width="2"/>');
+      if (s.taken) out.push(text(c, x(s.t), axisY - 16, String(i + 1), '--bg', 'text-anchor="middle" font-weight="700" font-size="11"'));
+    });
+    [[9.5, '9:30'], [12, 'Noon'], [16, '4:00']].forEach(function (t, k) {
+      out.push(text(c, x(t[0]), axisY + 18, t[1], '--muted', 'text-anchor="' + (k === 0 ? 'start' : k === 2 ? 'end' : 'middle') + '"'));
+    });
+    var ly = axisY + 44;
+    out.push('<circle cx="6" cy="' + (ly - 4) + '" r="6" fill="' + token('--accent') + '"/>');
+    out.push(text(c, 18, ly, 'Trade taken', '--fg'));
+    out.push('<circle cx="112" cy="' + (ly - 4) + '" r="6" fill="' + token('--bg') + '" stroke="' + token('--muted') + '" stroke-width="2"/>');
+    out.push(text(c, 124, ly, 'Setup skipped', '--fg'));
+
+    mount(el, w, ly + 8, 'One made-up trading day from 9:30 to 4:00 with an example cap of ' + CAP + ' trades. Three trades are taken ' +
+      'by late morning; the cap is reached, and three later setups are skipped.', out);
+  }
+
   // ---- Fig. 8.1: who pays, who collects, who is obliged ----
 
   function drawOptionRoles(el) {
@@ -1871,6 +2066,8 @@
     fees: drawFees, pie: drawPie, 'dividend-loop': drawDividendLoop, 'dividend-income': drawDividendIncome,
     drift: drawDrift, 'core-default': drawCoreDefault,
     hedge: drawHedge,
+    'holding-periods': drawHoldingPeriods, 'long-call': drawLongCall, 'tuition-months': drawTuitionMonths, 'paper-gate': drawPaperGate,
+    'trade-cap': drawTradeCap,
     'option-roles': drawOptionRoles, 'covered-call': drawCoveredCall, 'short-put': drawShortPut, wheel: drawWheel,
     covered: drawCovered,
     'attention-month': drawAttentionMonth, setups: drawSetups, 'momentum-funnel': drawMomentumFunnel,
@@ -1889,7 +2086,7 @@
     module.exports = {
       grow: grow, breakeven: breakeven, futureValue: futureValue, drift: drift,
       mostUnderweight: mostUnderweight, dividendIncome: dividendIncome, pie: PIE,
-      hedgedValue: hedgedValue, coveredCallPL: coveredCallPL, shortPutPL: shortPutPL, wheel: WHEEL, rewardRisk: rewardRisk, positionSize: positionSize, runningAverage: runningAverage, traderA: TRADER_A, timeValueLeft: timeValueLeft, promoted: promoted,
+      hedgedValue: hedgedValue, longCallPL: longCallPL, tuitionPath: tuitionPath, coveredCallPL: coveredCallPL, shortPutPL: shortPutPL, wheel: WHEEL, rewardRisk: rewardRisk, positionSize: positionSize, runningAverage: runningAverage, traderA: TRADER_A, timeValueLeft: timeValueLeft, promoted: promoted,
       strategies: STRATEGIES, attentionShare: attentionShare, concentrationHit: concentrationHit,
       expectancy: expectancy, breakevenPayoff: breakevenPayoff, netAfterCosts: netAfterCosts, traderB: TRADER_B,
       roundTrip: roundTrip, lossPath: lossPath,

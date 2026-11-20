@@ -4,6 +4,15 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-11-20
+
+Chapter 15 gets a figure for every section.
+
+### Added
+
+- Chapter 15, Systematic: four figures. Fig. 15.1, code multiplies whatever the rule is: plus or minus $250 by hand, $2,500 in code. Fig. 15.2, the order of automation as a staircase, with order entry last. Fig. 15.3, overfitting with real arithmetic: a polynomial through every past point leaves the chart on new data, while a least-squares line holds up. Fig. 15.4, paper, then small, with the kill switch and hard limits.
+- Deploy checks for the interpolation, the line fit, and that the overfit curve misses new data by far more than the line.
+
 ## [0.20.0] - 2026-11-20
 
 Chapter 14 gets a figure for every rule.

@@ -55,6 +55,29 @@
     ['Systematic', 'Depends on rules', 'High upfront, low ongoing', 'systematic']
   ].map(function (r, i) { return { num: i + 1, name: r[0], risk: r[1], effort: r[2], group: r[3] }; });
 
+  // The polynomial through every point (Lagrange form), evaluated at `x`: a rule tuned to fit
+  // the past exactly.
+  function interpolate(xs, ys, x) {
+    return ys.reduce(function (sum, yi, i) {
+      return sum + yi * xs.reduce(function (p, xj, j) { return j === i ? p : p * (x - xj) / (xs[i] - xj); }, 1);
+    }, 0);
+  }
+
+  // The least-squares straight line through the points: a simple rule with two settings.
+  function lineFit(xs, ys) {
+    var n = xs.length, mx = xs.reduce(function (a, b) { return a + b; }, 0) / n, my = ys.reduce(function (a, b) { return a + b; }, 0) / n;
+    var sxy = 0, sxx = 0;
+    xs.forEach(function (x, i) { sxy += (x - mx) * (ys[i] - my); sxx += (x - mx) * (x - mx); });
+    var slope = sxy / sxx;
+    return { slope: slope, intercept: my - slope * mx };
+  }
+
+  // Made-up data for Fig. 15.3: a gently rising series with noise, then two new points.
+  var OVERFIT = {
+    past: { x: [0, 1, 2, 3, 4, 5, 6, 7], y: [0.32, 0.41, 0.36, 0.5, 0.47, 0.58, 0.55, 0.66] },
+    future: { x: [8, 9], y: [0.68, 0.74] }
+  };
+
   // A net capital loss deducted at up to `limit` a year, the rest carried forward. Assumes
   // no other capital gains or losses in later years, as Fig. 14.4 says.
   function lossCarry(loss, limit) {
@@ -1122,6 +1145,130 @@
 
     mount(el, w, 294, 'Flowchart: every dollar starts in the core. A small satellite tests a method. The journal measures ' +
       'expectancy and adherence. If it shows an edge, the satellite may grow within the rules. If not, the money goes back to the core.', out);
+  }
+
+  // ---- Fig. 15.1: code multiplies whatever the rule is ----
+
+  function drawMultiplier(el) {
+    var EDGE = 5, HAND = 50, CODE = 500;
+    var c = context(el), token = c.token, w = c.width, narrow = w < 420, out = [];
+    var left = narrow ? 92 : 150, mid = left + (w - left) / 2, half = (w - left) / 2 - 8, MAX = EDGE * CODE;
+    var sx = function (v) { return mid + (v / MAX) * half; }, ROW = 34, top = 30;
+    var ROWS = [
+      { name: 'Good rule, by hand', short: 'Good, hand', v: EDGE * HAND }, { name: 'Good rule, in code', short: 'Good, code', v: EDGE * CODE },
+      { name: 'Bad rule, by hand', short: 'Bad, hand', v: -EDGE * HAND }, { name: 'Bad rule, in code', short: 'Bad, code', v: -EDGE * CODE }
+    ];
+
+    out.push(text(c, mid, 14, 'Total over a year', '--fg', 'text-anchor="middle" font-weight="700"'));
+    ROWS.forEach(function (r, i) {
+      var y = top + i * ROW + (i > 1 ? 10 : 0), code = i % 2 === 1;
+      out.push(text(c, left - 10, y + 16, narrow ? r.short : r.name, '--fg', 'text-anchor="end"' + (code ? ' font-weight="700"' : '')));
+      out.push('<rect x="' + f1(Math.min(sx(0), sx(r.v))) + '" y="' + (y + 4) + '" width="' + f1(Math.abs(sx(r.v) - sx(0))) + '" height="16" fill="' +
+        token(r.v > 0 ? '--fg' : '--accent') + '"/>');
+      // A short bar cannot hold its label, so the label sits just outside it.
+      var inside = Math.abs(sx(r.v) - sx(0)) > 64, pos = r.v > 0;
+      out.push(text(c, inside ? (pos ? sx(r.v) - 6 : sx(r.v) + 6) : (pos ? sx(r.v) + 6 : sx(r.v) - 6), y + 16,
+        (pos ? '+' : '&minus;') + money(Math.abs(r.v)), inside ? '--bg' : '--fg',
+        'font-weight="700"' + (pos === inside ? ' text-anchor="end"' : '')));
+    });
+    out.push('<line x1="' + f1(mid) + '" x2="' + f1(mid) + '" y1="' + (top - 2) + '" y2="' + (top + 4 * ROW + 10) + '" stroke="' + token('--fg') + '" stroke-width="2"/>');
+
+    mount(el, w, top + 4 * ROW + 14, 'Bar chart of a hypothetical rule worth plus or minus $5 a trade. By hand, 50 trades a year: plus or minus $250. ' +
+      'In code, 500 trades: plus or minus $2,500. Code multiplies whatever the rule already is.', out);
+  }
+
+  // ---- Fig. 15.2: the order of automation ----
+
+  function drawAutomationSteps(el) {
+    var STEPS = [
+      { name: '1. Record keeping', short: '1. Records', sub: 'Cannot place an order', tok: '--accent-2' },
+      { name: '2. Alerts', short: '2. Alerts', sub: 'You still decide and click', tok: '--accent-2' },
+      { name: '3. Order entry', short: '3. Orders', sub: 'Proven rules only, small size', tok: '--accent' }
+    ];
+    var c = context(el), token = c.token, w = c.width, out = [];
+    var stepW = w / 3, rise = 40, base = 3 * rise + 40;
+
+    STEPS.forEach(function (s, i) {
+      var x = i * stepW, top = base - (i + 1) * rise;
+      out.push('<rect x="' + f1(x) + '" y="' + top + '" width="' + f1(stepW - 4) + '" height="' + (base - top) + '" fill="' + token(s.tok) + '"' +
+        (i < 2 ? ' fill-opacity="' + (0.35 + i * 0.3) + '"' : '') + '/>');
+      out.push(text(c, x + 8, top + 18, w < 480 ? s.short : s.name, i === 0 ? '--fg' : '--bg', 'font-weight="700"'));
+      out.push(text(c, x, base + 18, w < 480 ? s.sub.split(' ').reduce(function (acc, wd) {
+        var last = acc[acc.length - 1];
+        if (last && (last + ' ' + wd).length <= 13) acc[acc.length - 1] = last + ' ' + wd; else acc.push(wd);
+        return acc;
+      }, []) : s.sub, '--fg'));
+    });
+    out.push(text(c, 0, 14, 'Each step only after the one below it works', '--muted'));
+
+    mount(el, w, base + (w < 480 ? 68 : 28), 'A staircase of three steps: record keeping, which cannot place an order; alerts, where you still ' +
+      'decide and click; and order entry, for proven rules only, at small size.', out);
+  }
+
+  // ---- Fig. 15.3: a rule tuned to the past ----
+
+  function drawOverfit(el) {
+    var c = context(el), token = c.token, w = c.width, narrow = w < 420;
+    var h = Math.round(clamp(w * 0.55, 260, 360));
+    var m = { top: narrow ? 64 : 30, right: 10, bottom: 30, left: 10 };
+    var X_MAX = 9.5, Y_MIN = 0.1, Y_MAX = 1.0;
+    var x = function (v) { return m.left + (v / X_MAX) * (w - m.left - m.right); };
+    var y = function (v) { return h - m.bottom - ((v - Y_MIN) / (Y_MAX - Y_MIN)) * (h - m.top - m.bottom); };
+    var past = OVERFIT.past, fut = OVERFIT.future, line = lineFit(past.x, past.y), out = [];
+
+    out.push('<defs><clipPath id="overfit-clip"><rect x="' + m.left + '" y="' + m.top + '" width="' + f1(w - m.left - m.right) + '" height="' +
+      f1(h - m.top - m.bottom) + '"/></clipPath></defs>');
+    out.push('<rect x="' + f1(x(7.5)) + '" y="' + m.top + '" width="' + f1(x(X_MAX) - x(7.5)) + '" height="' + f1(h - m.top - m.bottom) + '" fill="' +
+      token('--muted') + '" fill-opacity="0.12"/>');
+    out.push(text(c, x(3.5), h - 10, 'The past: used to build the rule', '--muted', 'text-anchor="middle"'));
+    out.push(text(c, x(8.5), h - 10, 'New data', '--muted', 'text-anchor="middle"'));
+    var curve = [];
+    for (var v = 0; v <= X_MAX + 1e-9; v += 0.05) curve.push(f1(x(v)) + ',' + f1(y(Math.max(-5, Math.min(5, interpolate(past.x, past.y, v))))));
+    out.push('<g clip-path="url(#overfit-clip)">' + polyline(curve, token('--accent'), 2.5) +
+      polyline([f1(x(0)) + ',' + f1(y(line.intercept)), f1(x(X_MAX)) + ',' + f1(y(line.intercept + line.slope * X_MAX))], token('--fg'), 2.5) + '</g>');
+    past.x.forEach(function (xv, i) { out.push('<circle cx="' + f1(x(xv)) + '" cy="' + f1(y(past.y[i])) + '" r="4.5" fill="' + token('--accent-2') + '"/>'); });
+    fut.x.forEach(function (xv, i) {
+      out.push('<circle cx="' + f1(x(xv)) + '" cy="' + f1(y(fut.y[i])) + '" r="5" fill="' + token('--bg') + '" stroke="' + token('--accent-2') + '" stroke-width="2"/>');
+    });
+    if (narrow) {
+      out.push('<line x1="0" x2="18" y1="12" y2="12" stroke="' + token('--accent') + '" stroke-width="2.5"/>');
+      out.push(text(c, 24, 16, 'Fits every past point', '--fg'));
+      out.push('<line x1="0" x2="18" y1="32" y2="32" stroke="' + token('--fg') + '" stroke-width="2.5"/>');
+      out.push(text(c, 24, 36, 'Simple rule, two settings', '--fg'));
+    } else {
+      out.push(text(c, x(6.6), m.top + 16, ['Tuned to fit every past point:', 'it shoots off on new data'], '--accent', 'text-anchor="end" font-weight="700"'));
+      out.push(text(c, x(4.2), y(line.intercept + line.slope * 4.2) + 34, ['Simple rule, two settings:', 'misses a little, holds up'], '--fg', 'font-weight="700"'));
+    }
+
+    mount(el, w, h, 'Sketch with made-up data. Eight past points rise gently with noise. A curve tuned to pass through every one of them ' +
+      'shoots off the chart on the two new points, while a simple straight line misses each past point a little and stays close to the new ones.', out);
+  }
+
+  // ---- Fig. 15.4: paper, then small, with a kill switch ----
+
+  function drawKillSwitch(el) {
+    var c = context(el), token = c.token, w = c.width, wide = w >= 560, out = [];
+    var STEPS = [['Paper trading', 'catches bugs and bad data'], ['Real money, small', 'real fills, real nerves'], ['Scale up', 'only as the journal supports']];
+    var gap = 22, bw = wide ? (w - 2 * gap) / 3 : w, y = 0;
+
+    STEPS.forEach(function (s, i) {
+      var x = wide ? i * (bw + gap) : 0, yy = wide ? 0 : i * 72;
+      out.push(box(c, x, yy, bw, s, i === 0 ? { stroke: '--accent-2' } : i === 1 ? { fill: '--accent-2' } : { fill: '--fg' }));
+      if (i < 2) out.push(wide ? arrow(x + bw + 2, yy + 25, x + bw + gap - 2, yy + 25, token('--fg')) : arrow(bw / 2, yy + 52, bw / 2, yy + 70, token('--fg')));
+      y = yy + 50;
+    });
+    var ky = y + 22;
+    out.push('<rect x="0" y="' + ky + '" width="' + f1(w) + '" height="36" fill="' + token('--accent') + '"/>');
+    out.push(text(c, 12, ky + 23, wide ? 'Kill switch: one step, from your phone, cancels orders and stops the code' : 'Kill switch: one step, from your phone',
+      '--bg', 'font-weight="700"'));
+    var ly = ky + 58;
+    out.push(text(c, 0, ly, 'Hard limits written into the code:', '--fg', 'font-weight="700"'));
+    out.push(text(c, 0, ly + 17, wide ? ['Maximum position size. Maximum orders a day (your trade cap). A maximum loss that halts everything.']
+      : ['Maximum position size.', 'Maximum orders a day (your trade cap).', 'A maximum loss that halts everything.'], '--fg'));
+
+    mount(el, w, ly + (wide ? 26 : 56), 'Three steps for a new automated rule: paper trading, then real money at small size, then scaling up only as ' +
+      'the journal supports. Under all of them, a kill switch: one step from your phone that cancels orders and stops the code. ' +
+      'Hard limits in the code: maximum position size, maximum orders a day, and a maximum loss that halts everything.', out);
   }
 
   // ---- Fig. 14.1: the day trading rule, replaced ----
@@ -2863,6 +3010,7 @@
     fees: drawFees, pie: drawPie, 'dividend-loop': drawDividendLoop, 'dividend-income': drawDividendIncome,
     drift: drawDrift, 'core-default': drawCoreDefault,
     hedge: drawHedge,
+    multiplier: drawMultiplier, 'automation-steps': drawAutomationSteps, overfit: drawOverfit, 'kill-switch': drawKillSwitch,
     'pdt-timeline': drawPdtTimeline, settlement: drawSettlement, 'holding-line': drawHoldingLine, 'loss-carry': drawLossCarry,
     'wash-sale': drawWashSale, 'sixty-forty': drawSixtyForty, proposal: drawProposal,
     'tool-order': drawToolOrder, dimensions: drawDimensions, portable: drawPortable, 'fit-columns': drawFitColumns,
@@ -2891,7 +3039,7 @@
     module.exports = {
       grow: grow, breakeven: breakeven, futureValue: futureValue, drift: drift,
       mostUnderweight: mostUnderweight, dividendIncome: dividendIncome, pie: PIE,
-      hedgedValue: hedgedValue, lossCarry: lossCarry, split6040: split6040, builtForCounts: builtForCounts, rMultiple: rMultiple, journalRows: JOURNAL_ROWS, sizedPath: sizedPath, adherence: adherence, streakLeft: streakLeft, sizedTrades: SIZED, longCallPL: longCallPL, tuitionPath: tuitionPath, coveredCallPL: coveredCallPL, shortPutPL: shortPutPL, wheel: WHEEL, rewardRisk: rewardRisk, positionSize: positionSize, runningAverage: runningAverage, traderA: TRADER_A, timeValueLeft: timeValueLeft, promoted: promoted,
+      hedgedValue: hedgedValue, interpolate: interpolate, lineFit: lineFit, overfit: OVERFIT, lossCarry: lossCarry, split6040: split6040, builtForCounts: builtForCounts, rMultiple: rMultiple, journalRows: JOURNAL_ROWS, sizedPath: sizedPath, adherence: adherence, streakLeft: streakLeft, sizedTrades: SIZED, longCallPL: longCallPL, tuitionPath: tuitionPath, coveredCallPL: coveredCallPL, shortPutPL: shortPutPL, wheel: WHEEL, rewardRisk: rewardRisk, positionSize: positionSize, runningAverage: runningAverage, traderA: TRADER_A, timeValueLeft: timeValueLeft, promoted: promoted,
       strategies: STRATEGIES, attentionShare: attentionShare, concentrationHit: concentrationHit,
       expectancy: expectancy, breakevenPayoff: breakevenPayoff, netAfterCosts: netAfterCosts, traderB: TRADER_B,
       roundTrip: roundTrip, lossPath: lossPath,

@@ -111,6 +111,19 @@ if (typeof chart.grow !== 'function' || typeof chart.breakeven !== 'function' ||
     if (chart.lossPath(10000, 0.07, 30, 10, 0.5).toFixed(0) !== '38061') fail('chart.lossPath: Fig. 1.3 ends at $38,061 with the fall');
     if (chart.lossPath(10000, 0.07, 30, 99, 0.5).toFixed(0) !== '76123') fail('chart.lossPath: Fig. 1.3 ends at $76,123 without it');
   }
+  // Chapter 15 figures.
+  if (typeof chart.interpolate !== 'function' || typeof chart.lineFit !== 'function' || !chart.overfit) fail('js/chart.js: must export interpolate, lineFit, and overfit');
+  else {
+    const o = chart.overfit;
+    if (!o.past.x.every((xv, i) => Math.abs(chart.interpolate(o.past.x, o.past.y, xv) - o.past.y[i]) < 1e-9)) fail('chart.interpolate: the overfit curve passes through every past point');
+    const fit = chart.lineFit([0, 1, 2], [1, 3, 5]);
+    if (!near(fit.slope, 2) || !near(fit.intercept, 1)) fail('chart.lineFit: points on y = 2x + 1 fit exactly');
+    const miss = (f) => o.future.x.reduce((s, xv, i) => s + Math.abs(f(xv) - o.future.y[i]), 0);
+    const line = chart.lineFit(o.past.x, o.past.y);
+    if (!(miss((xv) => chart.interpolate(o.past.x, o.past.y, xv)) > 10 * miss((xv) => line.intercept + line.slope * xv))) {
+      fail('chart.overfit: on new data the overfit curve should miss by far more than the simple line');
+    }
+  }
   // Chapter 14 figures.
   if (typeof chart.lossCarry !== 'function' || typeof chart.split6040 !== 'function') fail('js/chart.js: must export lossCarry and split6040');
   else {

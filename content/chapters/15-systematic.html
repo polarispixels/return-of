@@ -4,6 +4,15 @@
 <p>Code does what you tell it, every time, without doubt or fatigue. That is the strength and the danger. A bad rule in code is a bad rule executed faster and more often. So the order is fixed: run a rule by hand, record every trade in the journal, and let the evidence show whether the rule has positive expectancy and whether you follow it. Only then does the rule earn a place in code.</p>
 <p>Strategy 13 on the menu has high effort up front and low effort after. Its risk depends entirely on the rules inside it. Software adds no edge of its own. It removes the friction of acting, and it removes some of your mistakes of mood.</p>
 
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 15.1</span>
+    <h3 class="figure-title">Code multiplies whatever the rule is</h3>
+  </div>
+  <div class="chart" data-chart="multiplier"></div>
+  <p class="figure-note">Arithmetic only, with round, hypothetical numbers: a rule worth +$5 or &minus;$5 a trade, run 50 times a year by hand or 500 times in code. Software adds no edge; it scales the one the rule already has, or lacks.</p>
+</figure>
+
 <h2>The order of automation</h2>
 <p>Automate in three steps, and do not skip ahead.</p>
 <ol>
@@ -12,6 +21,15 @@
 <li><strong>Order entry.</strong> Let code place orders only for rules that passed the first two steps, and only with small size at first.</li>
 </ol>
 <p>This is why the tool checklist in Chapter 13 asks about API access, charting integration and CSV export. You are choosing the tools that make these steps possible.</p>
+
+<figure class="figure" data-style="editorial">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 15.2</span>
+    <h3 class="figure-title">The order of automation</h3>
+  </div>
+  <div class="chart" data-chart="automation-steps"></div>
+  <p class="figure-note">A diagram of the three steps above. Only the top step can place an order, so it comes last and starts small.</p>
+</figure>
 
 <h2>Backtesting and its traps</h2>
 <p>A backtest runs a rule over past prices to see what it would have done. It is useful for rejecting ideas. It is weak for confirming them. Three traps matter most.</p>
@@ -22,9 +40,27 @@
 </ul>
 <p>A backtest is a hypothesis, not proof. The journal, with real fills, is the proof.</p>
 
+<figure class="figure" data-style="swiss">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 15.3</span>
+    <h3 class="figure-title">A rule tuned to the past</h3>
+  </div>
+  <div class="chart" data-chart="overfit"></div>
+  <p class="figure-note">Made-up data, real arithmetic. The red curve is the polynomial through all eight past points, so it fits history perfectly; on the two new points it leaves the chart. The black line is the least-squares straight line. Costs, the third trap, are drawn in Fig. 3.2.</p>
+</figure>
+
 <h2>Paper first, then small, with a kill switch</h2>
 <p>Run any new automated rule on paper trading before real money. Paper trading catches bugs, bad data and surprises in how orders behave. It does not show real fills or your own reactions, so move to real money small and scale only as the journal supports it.</p>
 <p>Keep a human kill switch. You need one step, which you can take from your phone, that cancels open orders and stops the code. Set hard limits in the code itself: a maximum position size, a maximum number of orders per day (your trade cap), and a maximum loss that halts everything. Check on the system each morning as part of the routine. Software that nobody watches fails the principle that active management depends on activity.</p>
+
+<figure class="figure" data-style="editorial">
+  <div class="figure-head">
+    <span class="figure-number">Fig. 15.4</span>
+    <h3 class="figure-title">Paper, then small, with a kill switch</h3>
+  </div>
+  <div class="chart" data-chart="kill-switch"></div>
+  <p class="figure-note">A diagram of the section above. What loss or order count triggers the halt is an open question below.</p>
+</figure>
 
 <blockquote class="pull"><p>A bad rule in code is a bad rule executed faster and more often.</p></blockquote>
 

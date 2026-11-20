@@ -126,15 +126,20 @@
     names: ['U.S. stocks', 'International stocks', 'Bonds'],
     target: [60, 30, 10],
     now: [67, 24, 9],
-    tokens: ['--fg', '--muted', '--muted'],
-    opacity: [1, 1, 0.4]
+    tokens: ['--fg', '--accent-2', '--accent-2-soft'],
+    opacity: [1, 1, 1]
   };
 
   // ---- Shared drawing helpers ----
 
   function context(el) {
     var css = getComputedStyle(el);
-    var token = function (name) { return css.getPropertyValue(name).trim(); };
+    // A stylesheet cached from before --accent-2 existed would leave the blues empty, which SVG
+    // paints black. Fall back to the gray they replaced until the new stylesheet loads.
+    var token = function (name) {
+      var v = css.getPropertyValue(name).trim();
+      return v || (name.indexOf('--accent-2') === 0 ? css.getPropertyValue('--muted').trim() : v);
+    };
     return {
       token: token,
       width: Math.max(260, el.clientWidth),
@@ -151,7 +156,7 @@
 
   function drawCompound(el) {
     var SERIES = [
-      { rate: 0.04, token: '--muted', width: 1.5 },
+      { rate: 0.04, token: '--accent-2', width: 1.5 },
       { rate: 0.07, token: '--fg', width: 2 },
       { rate: 0.10, token: '--accent', width: 3 }
     ];
@@ -304,12 +309,12 @@
     // The gap between the two fee lines.
     out.push('<polygon points="' + pts(low).concat(pts(high).reverse()).join(' ') + '" fill="' + token('--accent') +
       '" fill-opacity="0.16"/>');
-    out.push(polyline(pts(paid), token('--muted'), 1.5, 'stroke-dasharray="4 4"'));
+    out.push(polyline(pts(paid), token('--accent-2'), 2, 'stroke-dasharray="4 4"'));
     out.push(polyline(pts(high), token('--accent'), 2));
     out.push(polyline(pts(low), token('--fg'), 3));
 
     [{ fn: low, name: '0.03% fee', token: '--fg' }, { fn: high, name: '1.00% fee', token: '--accent' },
-      { fn: paid, name: 'You put in', token: '--muted' }].forEach(function (s) {
+      { fn: paid, name: 'You put in', token: '--accent-2' }].forEach(function (s) {
       var end = s.fn(YEARS);
       out.push('<circle cx="' + f1(x(YEARS)) + '" cy="' + f1(y(end)) + '" r="3.5" fill="' + token(s.token) + '"/>');
       out.push(text(c, x(YEARS) + 10, y(end) - 2, s.name, '--fg', 'font-weight="700"'));
@@ -408,7 +413,7 @@
     var group = (w - m.left - m.right) / YEARS.length, bar = clamp(group * 0.3, 8, 24), out = [];
 
     hGrid(c, out, m, w, y, Y_TICKS, function (t) { return '$' + t; });
-    out.push('<rect x="' + m.left + '" y="4" width="10" height="10" fill="' + token('--muted') + '" fill-opacity="0.45"/>');
+    out.push('<rect x="' + m.left + '" y="4" width="10" height="10" fill="' + token('--accent-2-soft') + '"/>');
     out.push(text(c, m.left + 16, 13, 'Taking cash', '--fg'));
     out.push('<rect x="' + (m.left + 104) + '" y="4" width="10" height="10" fill="' + token('--fg') + '"/>');
     out.push(text(c, m.left + 120, 13, 'Reinvesting', '--fg'));
@@ -416,7 +421,7 @@
     YEARS.forEach(function (yr, i) {
       var mid = m.left + group * (i + 0.5), inc = dividendIncome(START, YIELD, GROWTH, yr);
       out.push('<rect x="' + f1(mid - bar - 1) + '" y="' + f1(y(inc.cash)) + '" width="' + f1(bar) + '" height="' +
-        f1(y(0) - y(inc.cash)) + '" fill="' + token('--muted') + '" fill-opacity="0.45"/>');
+        f1(y(0) - y(inc.cash)) + '" fill="' + token('--accent-2-soft') + '"/>');
       out.push('<rect x="' + f1(mid + 1) + '" y="' + f1(y(inc.reinvested)) + '" width="' + f1(bar) + '" height="' +
         f1(y(0) - y(inc.reinvested)) + '" fill="' + token('--fg') + '"/>');
       out.push(text(c, mid, h - 8, i === 0 ? 'Year 1' : String(yr), '--muted', 'text-anchor="middle"'));
@@ -510,14 +515,14 @@
   // ---- Bucket colors, used in Chapters 2 and 6: core --fg, satellite --accent, cushion and reserve --muted ----
 
   var BUCKETS = [
-    { name: 'Cushion', lines: ['Emergencies and', 'near-term bills'], token: '--muted', opacity: 1 },
-    { name: 'Opportunity reserve', lines: ['Cash ready for', 'a setup'], token: '--muted', opacity: 0.45 },
-    { name: 'Core', lines: ['Long-term growth,', 'little attention'], token: '--fg', opacity: 1 },
-    { name: 'Satellite', lines: ['Active work,', 'capped small'], token: '--accent', opacity: 1 }
+    { name: 'Cushion', lines: ['Emergencies and', 'near-term bills'], token: '--accent-2', opacity: 1, dark: true },
+    { name: 'Opportunity reserve', lines: ['Cash ready for', 'a setup'], token: '--accent-2-soft', opacity: 1, dark: false },
+    { name: 'Core', lines: ['Long-term growth,', 'little attention'], token: '--fg', opacity: 1, dark: true },
+    { name: 'Satellite', lines: ['Active work,', 'capped small'], token: '--accent', opacity: 1, dark: true }
   ];
 
   function block(c, x, y, bw, bh, b, labels) {
-    var dark = b.opacity === 1;
+    var dark = b.dark !== false;
     return '<rect x="' + f1(x) + '" y="' + f1(y) + '" width="' + f1(bw) + '" height="' + bh + '" fill="' + c.token(b.token) +
       '" fill-opacity="' + b.opacity + '"/>' +
       text(c, x + 10, y + 22, labels[0], dark ? '--bg' : '--fg', 'font-weight="700"') +
@@ -649,7 +654,7 @@
     out.push(text(c, start + 15, 13, 'Satellite', '--fg'));
     out.push('<rect x="' + f1(start + 82.5) + '" y="4.5" width="9" height="9" fill="none" stroke="' + token('--accent') + '" stroke-width="1.5"/>');
     out.push(text(c, start + 97, 13, 'Lost', '--fg'));
-    out.push('<rect x="' + f1(start + 140) + '" y="4" width="10" height="10" fill="' + token('--muted') + '" fill-opacity="0.3"/>');
+    out.push('<rect x="' + f1(start + 140) + '" y="4" width="10" height="10" fill="' + token('--accent-2-soft') + '"/>');
     out.push(text(c, start + 155, 13, 'Everything else', '--fg'));
 
     SHARES.forEach(function (share, k) {
@@ -661,7 +666,7 @@
           ? '<rect x="' + f1(x + 0.75) + '" y="' + f1(y + 0.75) + '" width="' + f1(s - 1.5) + '" height="' + f1(s - 1.5) +
             '" fill="none" stroke="' + token('--accent') + '" stroke-width="1.5"/>'
           : '<rect x="' + f1(x) + '" y="' + f1(y) + '" width="' + f1(s) + '" height="' + f1(s) + '" fill="' +
-            token(sat ? '--accent' : '--muted') + '"' + (sat ? '' : ' fill-opacity="0.3"') + '/>');
+            token(sat ? '--accent' : '--accent-2-soft') + '"/>');
       }
       var ly = top + pw + 20;
       out.push(text(c, ox, ly, n + '% satellite', '--fg', 'font-weight="700"'));
@@ -702,7 +707,7 @@
   // ---- Fig. 1.1: equal ups and downs do not cancel ----
 
   function drawRoundTrip(el) {
-    var SERIES = [{ p: 0.1, token: '--muted', width: 1.5 }, { p: 0.25, token: '--fg', width: 2 }, { p: 0.5, token: '--accent', width: 3 }];
+    var SERIES = [{ p: 0.1, token: '--accent-2', width: 1.5 }, { p: 0.25, token: '--fg', width: 2 }, { p: 0.5, token: '--accent', width: 3 }];
     var STEPS = ['Start', 'After the gain', 'After the loss'], Y_MIN = 60, Y_MAX = 160;
     var c = context(el), token = c.token, w = c.width;
     var h = Math.round(clamp(w * 0.55, 260, 380));
@@ -881,7 +886,7 @@
 
   function drawEdgeChain(el) {
     var STEPS = [
-      { lines: ['Information, analysis, discipline,', 'low costs, or patience'], opts: { stroke: '--muted' }, note: 'Where an edge can come from' },
+      { lines: ['Information, analysis, discipline,', 'low costs, or patience'], opts: { stroke: '--accent-2' }, note: 'Where an edge can come from' },
       { lines: ['A written method'], opts: { fill: '--fg' }, note: 'Entry, stop, and target' },
       { lines: ['Many trades, after costs'], opts: {}, note: 'Not one big win' },
       { lines: ['Edge, or no edge'], opts: { fill: '--accent' }, note: 'Only results can say' }
@@ -932,7 +937,7 @@
     COSTS.forEach(function (k, i) {
       out.push('<line x1="' + f1(cx(i) + bar / 2) + '" x2="' + f1(cx(i + 1) - bar / 2) + '" y1="' + f1(y(level)) + '" y2="' + f1(y(level)) +
         '" stroke="' + token('--muted') + '" stroke-width="1" stroke-dasharray="3 3"/>');
-      column(i + 1, level, level - k.v, '--muted', signed(-k.v), Object.assign(k.name.slice(), { short: k.short }));
+      column(i + 1, level, level - k.v, '--accent', signed(-k.v), Object.assign(k.name.slice(), { short: k.short }));
       level -= k.v;
     });
     out.push('<line x1="' + f1(cx(COSTS.length) + bar / 2) + '" x2="' + f1(cx(cols - 1) - bar / 2) + '" y1="' + f1(y(level)) + '" y2="' +
@@ -1106,7 +1111,7 @@
       var line = function (pts) { return pts.map(function (p) { return f1(x(p[0])) + ',' + f1(y(p[1])); }); };
       out.push(text(c, ox, oy + 13, s.name, '--fg', 'font-weight="700"'));
       out.push('<line x1="' + f1(x(0)) + '" x2="' + f1(x(1)) + '" y1="' + f1(y(0)) + '" y2="' + f1(y(0)) + '" stroke="' + token('--muted') + '" stroke-width="0.5"/>');
-      out.push(polyline(line(s.ref), token('--muted'), 1.5));
+      out.push(polyline(line(s.ref), token('--accent-2'), 1.5));
       // Stop and target run from the entry to the right edge.
       out.push('<line x1="' + f1(x(s.entry[0])) + '" x2="' + f1(x(1)) + '" y1="' + f1(y(s.stop)) + '" y2="' + f1(y(s.stop)) + '" stroke="' +
         token('--accent') + '" stroke-width="1.5" stroke-dasharray="5 3"/>');
@@ -1123,7 +1128,7 @@
     out.push(text(c, 90, ly, 'Stop', '--fg'));
     out.push('<line x1="130" x2="152" y1="' + (ly - 4) + '" y2="' + (ly - 4) + '" stroke="' + token('--fg') + '" stroke-width="1" stroke-dasharray="2 3"/>');
     out.push(text(c, 158, ly, 'Target', '--fg'));
-    out.push('<line x1="210" x2="232" y1="' + (ly - 4) + '" y2="' + (ly - 4) + '" stroke="' + token('--muted') + '" stroke-width="1.5"/>');
+    out.push('<line x1="210" x2="232" y1="' + (ly - 4) + '" y2="' + (ly - 4) + '" stroke="' + token('--accent-2') + '" stroke-width="1.5"/>');
     out.push(text(c, 238, ly, w < 330 ? 'Ref.' : 'Average, base, level', '--fg'));
 
     mount(el, w, ly + 8, 'Three sketches of swing setups, not real prices: a pullback to a rising average, a breakout from a base, ' +
@@ -1134,8 +1139,8 @@
 
   function drawMomentumFunnel(el) {
     var ROWS = [
-      { name: 'Every stock you could buy', sub: 'The whole market', share: 1, token: '--muted', opacity: 0.2 },
-      { name: 'The business is strong', sub: 'Earnings and sales growing, a leader', share: 0.66, token: '--muted', opacity: 0.55 },
+      { name: 'Every stock you could buy', sub: 'The whole market', share: 1, token: '--accent-2-soft', opacity: 1 },
+      { name: 'The business is strong', sub: 'Earnings and sales growing, a leader', share: 0.66, token: '--accent-2', opacity: 1 },
       { name: 'The chart agrees', sub: 'A breakout from a base on rising volume', share: 0.4, token: '--fg', opacity: 1 },
       { name: 'Enter, with a stop', sub: 'The stop limits the damage if wrong', share: 0.2, token: '--accent', opacity: 1 }
     ];
@@ -1413,7 +1418,7 @@
     out.push(text(c, m.left, 14, 'Core value after a market move', '--fg', 'font-weight="700"'));
     // The protected zone: below the floor, the hedge pays.
     out.push('<rect x="' + f1(x(X_MIN)) + '" y="' + f1(y(START * FLOOR)) + '" width="' + f1(x(FLOOR - 1) - x(X_MIN)) + '" height="' +
-      f1(y(Y_MIN) - y(START * FLOOR)) + '" fill="' + token('--fg') + '" fill-opacity="0.06"/>');
+      f1(y(Y_MIN) - y(START * FLOOR)) + '" fill="' + token('--accent-2') + '" fill-opacity="0.12"/>');
     for (var mv = X_MIN; mv <= X_MAX + 1e-9; mv += 0.01) {
       bare.push(f1(x(mv)) + ',' + f1(y(START * (1 + mv))));
       hedged.push(f1(x(mv)) + ',' + f1(y(START * hedgedValue(mv, FLOOR, PREMIUM))));
@@ -1433,11 +1438,11 @@
   }
 
   // ---- Chapter 4: numbered strategy chips, colored by slice ----
-  // Passive core in --fg (as in Chapters 2 and 6), the casino floor in --accent, the rest --muted.
+  // Passive core in --fg (as in Chapters 2 and 6), the casino floor in --accent, the rest --accent-2.
 
   var GROUP_TOKEN = { core: '--fg', casino: '--accent' };
   function chip(c, x, y, num, r, hollow) {
-    var tok = GROUP_TOKEN[STRATEGIES[num - 1].group] || '--muted';
+    var tok = GROUP_TOKEN[STRATEGIES[num - 1].group] || '--accent-2';
     return '<circle cx="' + f1(x) + '" cy="' + f1(y) + '" r="' + r + '" fill="' + (hollow ? c.token('--bg') : c.token(tok)) +
       '" stroke="' + c.token(tok) + '" stroke-width="' + (hollow ? 1.5 : 0) + '"/>' +
       text(c, x, y + 4, String(num), hollow ? '--fg' : '--bg', 'text-anchor="middle" font-weight="700" font-size="11"');
@@ -1448,7 +1453,7 @@
       var gx = stacked ? x : x + i * 112;
       if (stacked) y += i ? 18 : 0;
       out.push('<circle cx="' + f1(gx + 5) + '" cy="' + f1(y - 4) + '" r="5" fill="' +
-        c.token(GROUP_TOKEN[STRATEGIES[g[1] - 1].group] || '--muted') + '"/>');
+        c.token(GROUP_TOKEN[STRATEGIES[g[1] - 1].group] || '--accent-2') + '"/>');
       out.push(text(c, gx + 14, y, g[0], '--fg'));
     });
   }
@@ -1585,8 +1590,8 @@
   function drawEffortShapes(el) {
     var SERIES = [
       { name: ['Day Trading,', '0DTE'], f: function (t) { return 0.62 * t; }, token: '--accent', width: 3 },
-      { name: ['Value,', 'Systematic'], f: function (t) { return Math.min(t, 1) * 5 + Math.max(0, t - 1) * 0.12; }, token: '--fg', width: 2 },
-      { name: ['Index Core'], f: function (t) { return Math.min(t, 0.3) * 1.5 + Math.max(0, t - 0.3) * 0.04; }, token: '--muted', width: 2 }
+      { name: ['Value,', 'Systematic'], f: function (t) { return Math.min(t, 1) * 5 + Math.max(0, t - 1) * 0.12; }, token: '--accent-2', width: 2 },
+      { name: ['Index Core'], f: function (t) { return Math.min(t, 0.3) * 1.5 + Math.max(0, t - 0.3) * 0.04; }, token: '--fg', width: 2 }
     ];
     var T = 12, Y_MAX = 8;
     var c = context(el), token = c.token, w = c.width;

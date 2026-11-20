@@ -4,6 +4,27 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-20
+
+Charts get a second color: blue.
+
+### Added
+
+- `--accent-2` (blue, `#1F5FAD`) and `--accent-2-soft` (light blue, `#8FB3DE`) in every style. A book-specific extension of the Laboratory palettes, chosen over green and purple after a side-by-side preview.
+- Charts fall back to gray if a cached stylesheet lacks the new colors, instead of drawing them black.
+- Docs: blue's meaning in the color rule, and the decision.
+
+### Changed
+
+- Gray now means structure only (grids, labels, bands, empty states). Where it stood for data, it is blue:
+  - Chapter 6: international stocks and bonds, deposits, taking cash, and the hedge's protected zone.
+  - Chapter 2: the cushion (blue) and reserve (light blue), and the rest of the portfolio in Fig. 2.4.
+  - Chapter 4: strategies outside the core and the casino floor; Value and Systematic in Fig. 4.4, where Index Core is now black.
+  - Chapter 7: the reference line in the setup sketches, and the funnel's first two stages.
+  - Chapter 1 and the welcome page: the mildest series in Figs. 1, 1.1.
+  - Chapter 3: the source-of-edge box.
+- Fig. 3.2: the cost bars are red, since costs are costs.
+
 ## [0.12.0] - 2026-11-20
 
 Chapter 7 gets a figure for every section.

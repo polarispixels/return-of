@@ -3,13 +3,16 @@
  * data-style="<name>", so styles can nest: a Swiss chart inside an Editorial page.
  *
  * To add a style: copy a block, rename it, change the values. Nothing else.
- * Values come from the Visual Design Laboratory profiles (polarispixels.com/laboratory).
+ * Values come from the Visual Design Laboratory profiles (polarispixels.com/laboratory),
+ * except --accent-2 and --accent-2-soft: a second chart color the book adds (see the docs page, Decisions).
  */
 
 [data-style="editorial"] {
   --bg: #FBFAF7;
   --fg: #1B1B1B;
   --accent: #B3261E;
+  --accent-2: #1F5FAD;
+  --accent-2-soft: #8FB3DE;
   --muted: #5C5C5C;
   --rule: #1B1B1B;
   --rule-weight: 1px;
@@ -28,6 +31,8 @@
   --bg: #FFFFFF;
   --fg: #111111;
   --accent: #D62828;
+  --accent-2: #1F5FAD;
+  --accent-2-soft: #8FB3DE;
   --muted: #666666;
   --rule: #111111;
   --rule-weight: 2px;
@@ -47,6 +52,8 @@
   --bg: #FF2D95;
   --fg: #111111;
   --accent: #111111;
+  --accent-2: #111111;
+  --accent-2-soft: #111111;
   --muted: #111111;
   --rule: #111111;
   --rule-weight: 3px;

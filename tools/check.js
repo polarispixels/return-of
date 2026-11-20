@@ -109,6 +109,19 @@ if (typeof chart.grow !== 'function' || typeof chart.breakeven !== 'function' ||
     if (chart.lossPath(10000, 0.07, 30, 10, 0.5).toFixed(0) !== '38061') fail('chart.lossPath: Fig. 1.3 ends at $38,061 with the fall');
     if (chart.lossPath(10000, 0.07, 30, 99, 0.5).toFixed(0) !== '76123') fail('chart.lossPath: Fig. 1.3 ends at $76,123 without it');
   }
+  // Chapter 4 figures: the strategy data drawn in Fig. 4.2 must match the table in the chapter.
+  if (!Array.isArray(chart.strategies) || chart.strategies.length !== 13) fail('chart.strategies: must list all 13 strategies');
+  else {
+    const ch4 = read('content/chapters/04-the-strategy-menu.html').replace(/&rsquo;/g, '’');
+    const rows = [...ch4.matchAll(/<tr><td>(\d+)<\/td><td>([^<]+)<\/td><td>[^<]*<\/td><td>([^<]+)<\/td><td>([^<]+)<\/td><\/tr>/g)];
+    if (rows.length !== 13) fail('content/chapters/04: expected 13 strategy rows in the table');
+    for (const [, num, name, risk, effort] of rows) {
+      const s = chart.strategies[Number(num) - 1];
+      if (!s || s.name !== name || s.risk !== risk || s.effort !== effort) fail(`chart.strategies: #${num} ${name} does not match the table (${risk}, ${effort})`);
+    }
+  }
+  if (typeof chart.attentionShare !== 'function' || !near(chart.attentionShare(4), 0.25)) fail('chart.attentionShare: 4 strategies get 25% each');
+  if (typeof chart.concentrationHit !== 'function' || !near(chart.concentrationHit(500), 0.002)) fail('chart.concentrationHit: 1 of 500 equal holdings is 0.2%');
   // Chapter 3 figures.
   if (typeof chart.expectancy !== 'function' || typeof chart.breakevenPayoff !== 'function' || typeof chart.netAfterCosts !== 'function') {
     fail('js/chart.js: must export expectancy, breakevenPayoff, and netAfterCosts');

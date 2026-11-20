@@ -4,6 +4,16 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-20
+
+Chapter 4 gets a figure for every section, and the menu gets a map.
+
+### Added
+
+- Chapter 4, The Strategy Menu: six figures. Fig. 4.1, untagged trades sorted into tagged strategies. Fig. 4.2, all thirteen strategies on a risk and effort grid. Fig. 4.3, the shape of a loss: one failure in a fund of 500 against one same-day option. Fig. 4.4, a sketch of effort over time. Fig. 4.5, the seven groups with their chapters. Fig. 4.6, one attention budget split across more strategies.
+- Strategy chips: numbered circles colored by slice (passive core black, casino floor red, the rest gray), for reuse in later chapters.
+- A deploy check that the strategy data drawn in Fig. 4.2 matches the Chapter 4 table word for word, plus checks for the attention and concentration arithmetic.
+
 ## [0.8.0] - 2026-11-20
 
 Chapter 3 gets a figure for every section.

@@ -43,6 +43,24 @@
     return { cash: cash, reinvested: cash * Math.pow(1 + yieldRate, year - 1) };
   }
 
+  // The thirteen strategies from the Chapter 4 table, word for word (tools/check.js
+  // compares them). `group` names the slice from "How the strategies group".
+  var STRATEGIES = [
+    ['Index Core', 'Low', 'Low', 'core'], ['Custom Pie', 'Low to Med', 'Low', 'core'],
+    ['Dividend Growth', 'Low to Med', 'Low', 'core'], ['Value', 'Med', 'High upfront, low ongoing', 'patient'],
+    ['Growth Momentum', 'Med to High', 'High', 'satellite'], ['Covered Calls', 'Low to Med', 'Med', 'seller'],
+    ['The Wheel', 'Med', 'Med', 'seller'], ['Protective Hedge', 'Lowers risk', 'Low to Med', 'insurance'],
+    ['Swing Trading', 'High', 'Med to High', 'satellite'], ['Long Options', 'High', 'Med', 'casino'],
+    ['Day Trading', 'High', 'Very High', 'casino'], ['0DTE Scalping', 'Very High', 'Very High', 'casino'],
+    ['Systematic', 'Depends on rules', 'High upfront, low ongoing', 'systematic']
+  ].map(function (r, i) { return { num: i + 1, name: r[0], risk: r[1], effort: r[2], group: r[3] }; });
+
+  // Share of a fixed attention budget each strategy gets when split evenly across `n`.
+  function attentionShare(n) { return 1 / n; }
+
+  // Share of an equal-weight fund lost when one of `n` holdings goes to zero.
+  function concentrationHit(n) { return 1 / n; }
+
   // Average result per trade.
   function expectancy(winRate, avgWin, avgLoss) { return winRate * avgWin - (1 - winRate) * avgLoss; }
 
@@ -1011,12 +1029,243 @@
       'expectancy and adherence. If it shows an edge, the satellite may grow within the rules. If not, the money goes back to the core.', out);
   }
 
+  // ---- Chapter 4: numbered strategy chips, colored by slice ----
+  // Passive core in --fg (as in Chapters 2 and 6), the casino floor in --accent, the rest --muted.
+
+  var GROUP_TOKEN = { core: '--fg', casino: '--accent' };
+  function chip(c, x, y, num, r, hollow) {
+    var tok = GROUP_TOKEN[STRATEGIES[num - 1].group] || '--muted';
+    return '<circle cx="' + f1(x) + '" cy="' + f1(y) + '" r="' + r + '" fill="' + (hollow ? c.token('--bg') : c.token(tok)) +
+      '" stroke="' + c.token(tok) + '" stroke-width="' + (hollow ? 1.5 : 0) + '"/>' +
+      text(c, x, y + 4, String(num), hollow ? '--fg' : '--bg', 'text-anchor="middle" font-weight="700" font-size="11"');
+  }
+  // A row of three legend items, or a column when `stacked` (18px apart).
+  function chipLegend(c, out, x, y, stacked) {
+    [['Passive core', 1], ['Casino floor', 10], ['Everything else', 5]].forEach(function (g, i) {
+      var gx = stacked ? x : x + i * 112;
+      if (stacked) y += i ? 18 : 0;
+      out.push('<circle cx="' + f1(gx + 5) + '" cy="' + f1(y - 4) + '" r="5" fill="' +
+        c.token(GROUP_TOKEN[STRATEGIES[g[1] - 1].group] || '--muted') + '"/>');
+      out.push(text(c, gx + 14, y, g[0], '--fg'));
+    });
+  }
+
+  // ---- Fig. 4.1: a name turns one blur into separate answers ----
+
+  function drawTags(el) {
+    var MIX = [9, 12, 4, 12, 9, 4, 9, 12, 4], LANES = [[4, 'Value'], [9, 'Swing Trading'], [12, '0DTE Scalping']];
+    var c = context(el), token = c.token, w = c.width, wide = w >= 560, out = [];
+    var bw = wide ? Math.min(220, w * 0.32) : w, bh = 134, R = 10;
+
+    out.push('<rect x="1" y="1" width="' + f1(bw - 2) + '" height="' + bh + '" fill="none" stroke="' + token('--muted') +
+      '" stroke-width="1.5" stroke-dasharray="5 4"/>');
+    out.push(text(c, 12, 22, '&ldquo;I was just trading&rdquo;', '--fg', 'font-weight="700"'));
+    MIX.forEach(function (n, i) {
+      // A loose scatter: three rows, nudged so it reads as a jumble, not a grid.
+      var cx = 24 + (i % 5) * Math.min(36, (bw - 40) / 5) + (i % 2) * 6, cy = 48 + Math.floor(i / 5) * 30 + ((i * 7) % 3) * 4;
+      out.push(chip(c, cx, cy, n, R));
+    });
+    out.push(text(c, 12, bh - 8, 'One blended result', '--muted'));
+
+    var lx = wide ? bw + 96 : 0, ly = wide ? 6 : bh + 58;
+    if (wide) {
+      out.push(arrow(bw + 12, bh / 2, bw + 80, bh / 2, token('--fg')));
+      out.push(text(c, bw + 46, bh / 2 - 10, 'Tag it', '--fg', 'text-anchor="middle" font-weight="700"'));
+    } else {
+      out.push(arrow(w / 2, bh + 8, w / 2, bh + 44, token('--fg')));
+      out.push(text(c, w / 2 + 10, bh + 30, 'Tag each trade', '--fg', 'font-weight="700"'));
+    }
+    LANES.forEach(function (l, k) {
+      var y = ly + k * 36 + 14;
+      for (var j = 0; j < 3; j++) out.push(chip(c, lx + 12 + j * 24, y, l[0], R));
+      out.push(text(c, lx + 92, y - 2, l[1], '--fg', 'font-weight="700"'));
+      out.push(text(c, lx + 92, y + 13, 'Its own rules, its own result', '--muted'));
+    });
+
+    mount(el, w, wide ? Math.max(bh + 4, 3 * 36 + 12) : bh + 58 + 3 * 36 + 4, 'Diagram: an untagged pile of trades from ' +
+      'three strategies gives one blended result. Tagged as Value, Swing Trading, and 0DTE Scalping, each gets its own rules and its own result.', out);
+  }
+
+  // ---- Fig. 4.2: the menu on one grid ----
+  // Effort across, risk up. "High upfront, low ongoing" is a hollow ring at High joined to a
+  // solid dot at Low. Systematic's risk depends on its rules, so it sits in its own row.
+
+  function drawMenuGrid(el) {
+    var RISK = ['Very High', 'High', 'Med to High', 'Med', 'Low to Med', 'Low', 'Lowers risk', 'Depends on rules'];
+    var RISK_SHORT = ['Very High', 'High', 'Med&ndash;High', 'Med', 'Low&ndash;Med', 'Low', 'Lowers', 'Depends'];
+    var EFFORT = ['Low', 'Low to Med', 'Med', 'Med to High', 'High', 'Very High'];
+    var EFFORT_SHORT = ['Low', 'L&ndash;M', 'Med', 'M&ndash;H', 'High', 'V.H.'];
+    var c = context(el), token = c.token, w = c.width, narrow = w < 560, out = [];
+    var m = { top: 22, left: narrow ? 64 : 112, right: 6 }, ROW = 34, GAP = 12, R = 9;
+    var col = (w - m.left - m.right) / EFFORT.length;
+    var ry = function (i) { return m.top + i * ROW + (i === RISK.length - 1 ? GAP : 0) + ROW / 2; };
+    var cx = function (j) { return m.left + col * (j + 0.5); };
+    var gridBottom = m.top + RISK.length * ROW + GAP;
+
+    out.push(text(c, 0, 12, 'Risk', '--fg', 'font-weight="700"'));
+    RISK.forEach(function (r, i) {
+      var top = ry(i) - ROW / 2;
+      out.push('<rect x="' + m.left + '" y="' + f1(top) + '" width="' + f1(w - m.left - m.right) + '" height="' + ROW + '" fill="' +
+        token('--muted') + '" fill-opacity="' + (i % 2 ? 0.05 : 0.11) + '"/>');
+      out.push(text(c, m.left - 8, ry(i) + 4, (narrow ? RISK_SHORT : RISK)[i], '--fg', 'text-anchor="end"'));
+    });
+    EFFORT.forEach(function (e, j) {
+      out.push(text(c, cx(j), gridBottom + 16, (narrow ? EFFORT_SHORT : EFFORT)[j], '--fg', 'text-anchor="middle"'));
+    });
+    out.push(text(c, w - m.right, gridBottom + 34, 'Effort &rarr;', '--fg', 'text-anchor="end" font-weight="700"'));
+
+    // Place each strategy; spread chips that share a cell.
+    var cells = {};
+    STRATEGIES.forEach(function (s) {
+      var split = s.effort === 'High upfront, low ongoing';
+      var key = s.risk + '|' + (split ? 'Low' : s.effort);
+      (cells[key] = cells[key] || []).push(s);
+    });
+    Object.keys(cells).forEach(function (key) {
+      var list = cells[key];
+      list.forEach(function (s, k) {
+        var i = RISK.indexOf(s.risk), split = s.effort === 'High upfront, low ongoing';
+        var j = split ? 0 : EFFORT.indexOf(s.effort), dx = (k - (list.length - 1) / 2) * (2 * R + 3);
+        if (split) {
+          var hx = cx(EFFORT.indexOf('High'));
+          out.push('<line x1="' + f1(hx - R - 2) + '" x2="' + f1(cx(0) + R + 10) + '" y1="' + f1(ry(i)) + '" y2="' + f1(ry(i)) + '" stroke="' +
+            token('--muted') + '" stroke-width="1.5" stroke-dasharray="4 3"/>');
+          out.push(arrowhead(cx(0) + R + 3, ry(i), Math.PI, token('--muted')));
+          out.push(chip(c, hx, ry(i), s.num, R, true));
+        }
+        out.push(chip(c, cx(j) + dx, ry(i), s.num, R));
+      });
+    });
+
+    var ly = gridBottom + 34;
+    chipLegend(c, out, 0, ly + (narrow ? 22 : 0), narrow);
+    var ux = narrow ? 0 : 3 * 112 + 8, uy = ly + (narrow ? 22 + 3 * 18 : 0);
+    out.push('<circle cx="' + f1(ux + 5) + '" cy="' + f1(uy - 4) + '" r="5" fill="' + token('--bg') + '" stroke="' + token('--muted') + '" stroke-width="1.5"/>');
+    out.push(text(c, ux + 14, uy, 'Effort up front, then low', '--fg'));
+
+    mount(el, w, uy + 8, 'Grid of the thirteen strategies by risk and effort. ' + STRATEGIES.map(function (s) {
+      return s.num + ' ' + s.name + ': risk ' + s.risk + ', effort ' + s.effort;
+    }).join('. ') + '.', out);
+  }
+
+  // ---- Fig. 4.3: the shape of a loss ----
+
+  function drawLossShape(el) {
+    var N = 500, COLS = 25;
+    var c = context(el), token = c.token, w = c.width, wide = w >= 560, out = [];
+    var pw = wide ? (w - 32) / 2 : w, cell = Math.min(10, (pw - 4) / COLS), gh = cell * (N / COLS);
+
+    function caption(x, y, lines) { out.push(text(c, x, y, lines, '--fg')); }
+    // Left: an equal-weight fund of 500; one holding fails.
+    out.push(text(c, 0, 14, 'A fund of ' + N + ' equal holdings', '--fg', 'font-weight="700"'));
+    for (var i = 0; i < N; i++) {
+      var x = (i % COLS) * cell, y = 26 + Math.floor(i / COLS) * cell, bad = i === 137;
+      out.push('<rect x="' + f1(x + 0.6) + '" y="' + f1(y + 0.6) + '" width="' + f1(cell - 1.2) + '" height="' + f1(cell - 1.2) + '" fill="' +
+        (bad ? 'none' : token('--fg')) + '"' + (bad ? ' stroke="' + token('--accent') + '" stroke-width="1.5"' : '') + '/>');
+    }
+    caption(0, 26 + gh + 20, ['One company fails:', '&minus;' + f1(concentrationHit(N) * 100) + '% of the fund']);
+
+    // Right: one same-day option.
+    var ox = wide ? pw + 32 : 0, oy = wide ? 0 : 26 + gh + 64, side = Math.min(gh, 120);
+    out.push(text(c, ox, oy + 14, 'One same-day option', '--fg', 'font-weight="700"'));
+    out.push('<rect x="' + f1(ox + 1) + '" y="' + (oy + 27) + '" width="' + f1(side) + '" height="' + f1(side) + '" fill="none" stroke="' +
+      token('--accent') + '" stroke-width="3"/>');
+    out.push('<rect x="' + f1(ox + 1) + '" y="' + f1(oy + 27 + side - 4) + '" width="' + f1(side) + '" height="4" fill="' + token('--accent') + '"/>');
+    caption(ox, oy + 27 + side + 20, ['It is the whole position:', 'it can lose nearly all of it,', 'within minutes']);
+
+    mount(el, w, wide ? 26 + gh + 44 : oy + 27 + side + 54, 'Two panels. Left: a fund of 500 equal holdings; one fails and the fund ' +
+      'loses 0.2%. Right: a single same-day option is the whole position and can lose nearly all of its value within minutes.', out);
+  }
+
+  // ---- Fig. 4.4: effort over time (a sketch of the text's claim, no data) ----
+
+  function drawEffortShapes(el) {
+    var SERIES = [
+      { name: ['Day Trading,', '0DTE'], f: function (t) { return 0.62 * t; }, token: '--accent', width: 3 },
+      { name: ['Value,', 'Systematic'], f: function (t) { return Math.min(t, 1) * 5 + Math.max(0, t - 1) * 0.12; }, token: '--fg', width: 2 },
+      { name: ['Index Core'], f: function (t) { return Math.min(t, 0.3) * 1.5 + Math.max(0, t - 0.3) * 0.04; }, token: '--muted', width: 2 }
+    ];
+    var T = 12, Y_MAX = 8;
+    var c = context(el), token = c.token, w = c.width;
+    var h = Math.round(clamp(w * 0.5, 240, 340));
+    var m = { top: 24, right: 92, bottom: 28, left: 12 };
+    var x = function (t) { return m.left + (t / T) * (w - m.left - m.right); };
+    var y = function (v) { return h - m.bottom - (v / Y_MAX) * (h - m.top - m.bottom); };
+    var out = [];
+
+    out.push('<line x1="' + m.left + '" x2="' + f1(w - m.right) + '" y1="' + f1(y(0)) + '" y2="' + f1(y(0)) + '" stroke="' + token('--fg') + '" stroke-width="2"/>');
+    out.push('<line x1="' + m.left + '" x2="' + m.left + '" y1="' + m.top + '" y2="' + f1(y(0)) + '" stroke="' + token('--fg') + '" stroke-width="2"/>');
+    out.push(text(c, m.left + 8, m.top - 8, 'Total effort spent', '--fg', 'font-weight="700"'));
+    out.push(text(c, w - m.right, h - 8, 'Time &rarr;', '--fg', 'text-anchor="end" font-weight="700"'));
+    out.push(text(c, m.left, h - 8, 'Start', '--muted'));
+
+    var ends = SERIES.map(function (s) { return y(s.f(T)) - 3; }), labelY = spread(ends, 32);
+    SERIES.forEach(function (s, k) {
+      var pts = [];
+      for (var t = 0; t <= T + 1e-9; t += 0.1) pts.push(f1(x(t)) + ',' + f1(y(s.f(t))));
+      out.push(polyline(pts, token(s.token), s.width));
+      out.push(text(c, x(T) + 10, labelY[k], s.name, '--fg', 'font-weight="700"'));
+    });
+
+    mount(el, w, h, 'Sketch with no units: total effort over time. Day Trading and 0DTE climb steadily, every day. ' +
+      'Value and Systematic jump at the start, then flatten. Index Core takes a little at setup and almost nothing after.', out);
+  }
+
+  // ---- Fig. 4.5: how the strategies group ----
+
+  function drawGroups(el) {
+    var GROUPS = [
+      ['Passive core', [1, 2, 3], 'Ch. 6'], ['Patient active', [4], 'Ch. 7'], ['Active satellite', [5, 9], 'Ch. 7'],
+      ['Options, seller&rsquo;s side', [6, 7], 'Ch. 8'], ['Insurance', [8], ''], ['Casino floor', [10, 11, 12], 'Ch. 9'],
+      ['Systematic', [13], 'Ch. 15']
+    ];
+    var c = context(el), token = c.token, w = c.width, ROW = 34, R = 10, out = [];
+
+    GROUPS.forEach(function (g, i) {
+      var y = i * ROW + ROW / 2;
+      out.push('<line x1="0" x2="' + w + '" y1="' + f1(i * ROW + ROW) + '" y2="' + f1(i * ROW + ROW) + '" stroke="' + token('--muted') +
+        '" stroke-width="0.5"/>');
+      g[1].forEach(function (n, k) { out.push(chip(c, 12 + k * 24, y, n, R)); });
+      out.push(text(c, 84, y + 4, g[0], '--fg', 'font-weight="700"'));
+      if (g[2]) out.push(text(c, w - 2, y + 4, g[2], '--muted', 'text-anchor="end"'));
+    });
+
+    mount(el, w, GROUPS.length * ROW + 2, 'The seven groups: ' + GROUPS.map(function (g) {
+      return g[0].replace('&rsquo;', "'") + ', strategies ' + g[1].join(', ') + (g[2] ? ', ' + g[2].replace('Ch.', 'Chapter') : '');
+    }).join('. ') + '.', out);
+  }
+
+  // ---- Fig. 4.6: one attention budget, split ----
+
+  function drawAttention(el) {
+    var COUNTS = [1, 2, 3, 5, 8, 13];
+    var c = context(el), token = c.token, w = c.width;
+    var m = { top: 8, right: 52, left: 104 }, ROW = 30, BAR = 16;
+    var len = function (v) { return v * (w - m.left - m.right); }, out = [];
+
+    COUNTS.forEach(function (n, i) {
+      var top = m.top + i * ROW + (ROW - BAR) / 2, share = attentionShare(n);
+      out.push(text(c, m.left - 10, top + BAR - 3, n + (n === 1 ? ' strategy' : ' strategies'), '--fg', 'text-anchor="end"' + (n === 13 ? ' font-weight="700"' : '')));
+      out.push('<rect x="' + m.left + '" y="' + f1(top) + '" width="' + f1(len(1)) + '" height="' + BAR + '" fill="' + token('--muted') + '" fill-opacity="0.12"/>');
+      out.push('<rect x="' + m.left + '" y="' + f1(top) + '" width="' + f1(Math.max(2, len(share))) + '" height="' + BAR + '" fill="' +
+        token(n === 13 ? '--accent' : '--fg') + '"/>');
+      out.push(text(c, m.left + len(share) + 6, top + BAR - 3, Math.round(share * 100) + '%', '--fg', 'font-weight="700"'));
+    });
+    out.push('<line x1="' + m.left + '" x2="' + m.left + '" y1="' + (m.top - 4) + '" y2="' + (m.top + COUNTS.length * ROW + 4) + '" stroke="' +
+      token('--fg') + '" stroke-width="2"/>');
+
+    mount(el, w, m.top + COUNTS.length * ROW + 8, 'Bar chart: the attention each strategy gets when one budget is split evenly. ' +
+      COUNTS.map(function (n) { return n + ': ' + Math.round(attentionShare(n) * 100) + '%'; }).join(', ') + '.', out);
+  }
+
   // ---- Registry and wiring ----
 
   var CHARTS = {
     compound: drawCompound, breakeven: drawBreakeven,
     fees: drawFees, pie: drawPie, 'dividend-loop': drawDividendLoop, 'dividend-income': drawDividendIncome,
     drift: drawDrift, 'core-default': drawCoreDefault,
+    tags: drawTags, 'menu-grid': drawMenuGrid, 'loss-shape': drawLossShape, 'effort-shapes': drawEffortShapes,
+    groups: drawGroups, attention: drawAttention,
     'edge-chain': drawEdgeChain, 'cost-waterfall': drawCostWaterfall, memory: drawMemory,
     'expectancy-map': drawExpectancyMap, 'edge-loop': drawEdgeLoop,
     'round-trip': drawRoundTrip, 'breakeven-curve': drawBreakevenCurve, survivors: drawSurvivors, habits: drawHabits,
@@ -1028,6 +1277,7 @@
     module.exports = {
       grow: grow, breakeven: breakeven, futureValue: futureValue, drift: drift,
       mostUnderweight: mostUnderweight, dividendIncome: dividendIncome, pie: PIE,
+      strategies: STRATEGIES, attentionShare: attentionShare, concentrationHit: concentrationHit,
       expectancy: expectancy, breakevenPayoff: breakevenPayoff, netAfterCosts: netAfterCosts, traderB: TRADER_B,
       roundTrip: roundTrip, lossPath: lossPath,
       recoveryYears: recoveryYears, forcedSale: forcedSale, portfolioHit: portfolioHit, charts: Object.keys(CHARTS)

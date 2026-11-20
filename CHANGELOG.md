@@ -4,6 +4,21 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-20
+
+Chapter 6 brought in line with the rest of the book.
+
+### Changed
+
+- Chapter 6 figures follow the book's color rule: red means loss, cost, risk, or the active slice. Fig. 6.1: the low-fee line is now black and the 1.00% fee red. Figs. 6.2 and 6.4: international stocks are gray, not red. Fig. 6.3: reinvesting is black and the loop nodes are black. Fig. 6.5: the hedged core is black and the unhedged core red.
+- Fig. 6.6 shows strategies 1 to 3 as chips in the core, and is drawn with the same bucket blocks as Chapter 2.
+- Chapter 6 chart code uses the shared grid and line helpers.
+
+### Added
+
+- A deploy check that the example pie never uses red.
+- Docs: the color rule.
+
 ## [0.10.0] - 2026-11-20
 
 The Protective Hedge gets a home, and Chapter 5 gets a figure for every section.

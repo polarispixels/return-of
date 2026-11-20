@@ -105,11 +105,13 @@
   function portfolioHit(share, loss) { return share * loss; }
 
   // The example pie used across Chapter 6: one set of holdings, one set of colors.
+  // Neutral holdings stay out of red, which the book keeps for loss, cost, risk, and the active slice.
   var PIE = {
     names: ['U.S. stocks', 'International stocks', 'Bonds'],
     target: [60, 30, 10],
     now: [67, 24, 9],
-    tokens: ['--fg', '--accent', '--muted']
+    tokens: ['--fg', '--muted', '--muted'],
+    opacity: [1, 1, 0.4]
   };
 
   // ---- Shared drawing helpers ----
@@ -244,14 +246,14 @@
 
   // A donut. Slices start at twelve o'clock and run clockwise, with a 2px gap
   // between them painted in the surface color.
-  function donut(c, cx, cy, R, values, tokens) {
+  function donut(c, cx, cy, R, values, tokens, opacity) {
     var r = R * 0.58, a = -Math.PI / 2, out = [];
     var pt = function (rad, ang) { return f1(cx + rad * Math.cos(ang)) + ',' + f1(cy + rad * Math.sin(ang)); };
     values.forEach(function (v, i) {
       var b = a + (v / 100) * 2 * Math.PI, big = b - a > Math.PI ? 1 : 0;
       out.push('<path d="M' + pt(R, a) + ' A' + f1(R) + ',' + f1(R) + ' 0 ' + big + ' 1 ' + pt(R, b) + ' L' + pt(r, b) +
         ' A' + f1(r) + ',' + f1(r) + ' 0 ' + big + ' 0 ' + pt(r, a) + ' Z" fill="' + c.token(tokens[i]) +
-        '" stroke="' + c.token('--bg') + '" stroke-width="2"/>');
+        '" fill-opacity="' + (opacity ? opacity[i] : 1) + '" stroke="' + c.token('--bg') + '" stroke-width="2"/>');
       a = b;
     });
     return out.join('');
@@ -278,11 +280,7 @@
     };
     var out = [];
 
-    Y_TICKS.forEach(function (t) {
-      out.push('<line x1="' + m.left + '" x2="' + (w - m.right) + '" y1="' + f1(y(t)) + '" y2="' + f1(y(t)) +
-        '" stroke="' + token(t === 0 ? '--fg' : '--muted') + '" stroke-width="' + (t === 0 ? 2 : 0.5) + '"/>');
-      out.push(text(c, m.left - 8, y(t) + 4, t === 0 ? '$0' : '$' + t / 1000 + 'k', '--muted', 'text-anchor="end"'));
-    });
+    hGrid(c, out, m, w, y, Y_TICKS, function (t) { return t === 0 ? '$0' : '$' + t / 1000 + 'k'; });
     X_TICKS.forEach(function (t) {
       out.push(text(c, x(t), h - 8, t === 0 ? 'Year 0' : String(t), '--muted', 'text-anchor="' + (t === 0 ? 'start' : 'middle') + '"'));
     });
@@ -290,14 +288,11 @@
     // The gap between the two fee lines.
     out.push('<polygon points="' + pts(low).concat(pts(high).reverse()).join(' ') + '" fill="' + token('--accent') +
       '" fill-opacity="0.16"/>');
-    out.push('<polyline fill="none" stroke="' + token('--muted') + '" stroke-width="1.5" stroke-dasharray="4 4" points="' +
-      pts(paid).join(' ') + '"/>');
-    out.push('<polyline fill="none" stroke="' + token('--fg') + '" stroke-width="2" stroke-linejoin="round" points="' +
-      pts(high).join(' ') + '"/>');
-    out.push('<polyline fill="none" stroke="' + token('--accent') + '" stroke-width="3" stroke-linejoin="round" points="' +
-      pts(low).join(' ') + '"/>');
+    out.push(polyline(pts(paid), token('--muted'), 1.5, 'stroke-dasharray="4 4"'));
+    out.push(polyline(pts(high), token('--accent'), 2));
+    out.push(polyline(pts(low), token('--fg'), 3));
 
-    [{ fn: low, name: '0.03% fee', token: '--accent' }, { fn: high, name: '1.00% fee', token: '--fg' },
+    [{ fn: low, name: '0.03% fee', token: '--fg' }, { fn: high, name: '1.00% fee', token: '--accent' },
       { fn: paid, name: 'You put in', token: '--muted' }].forEach(function (s) {
       var end = s.fn(YEARS);
       out.push('<circle cx="' + f1(x(YEARS)) + '" cy="' + f1(y(end)) + '" r="3.5" fill="' + token(s.token) + '"/>');
@@ -324,8 +319,8 @@
     var cx1 = w / 2 - gap / 2 - R, cx2 = w / 2 + gap / 2 + R, cy = 48 + R;
     var k = mostUnderweight(PIE.target, PIE.now), out = [];
 
-    out.push(donut(c, cx1, cy, R, PIE.target, PIE.tokens));
-    out.push(donut(c, cx2, cy, R, PIE.now, PIE.tokens));
+    out.push(donut(c, cx1, cy, R, PIE.target, PIE.tokens, PIE.opacity));
+    out.push(donut(c, cx2, cy, R, PIE.now, PIE.tokens, PIE.opacity));
     out.push(text(c, cx1, cy + 4, 'Target', '--fg', 'text-anchor="middle" font-weight="700"'));
     out.push(text(c, cx2, cy + 4, 'Today', '--fg', 'text-anchor="middle" font-weight="700"'));
 
@@ -341,7 +336,8 @@
     out.push(text(c, vx, ly, 'Target, today', '--muted'));
     PIE.names.forEach(function (name, i) {
       var yy = ly + 22 + i * 22;
-      out.push('<rect x="' + f1(lx) + '" y="' + f1(yy - 10) + '" width="10" height="10" fill="' + token(PIE.tokens[i]) + '"/>');
+      out.push('<rect x="' + f1(lx) + '" y="' + f1(yy - 10) + '" width="10" height="10" fill="' + token(PIE.tokens[i]) +
+        '" fill-opacity="' + PIE.opacity[i] + '"/>');
       out.push(text(c, lx + 16, yy, name, '--fg', i === k ? 'font-weight="700"' : ''));
       out.push(text(c, vx, yy, PIE.target[i] + '% &rarr; ' + PIE.now[i] + '%', '--fg', i === k ? 'font-weight="700"' : ''));
     });
@@ -369,7 +365,7 @@
       out.push(arrowhead(px(a1), py(a1), a1 + Math.PI / 2, token('--fg')));
     });
     angles.forEach(function (a, i) {
-      out.push('<circle cx="' + f1(px(a)) + '" cy="' + f1(py(a)) + '" r="' + NODE + '" fill="' + token('--accent') + '"/>');
+      out.push('<circle cx="' + f1(px(a)) + '" cy="' + f1(py(a)) + '" r="' + NODE + '" fill="' + token('--fg') + '"/>');
       out.push(text(c, px(a), py(a) + 4, String(i + 1), '--bg', 'text-anchor="middle" font-weight="700"'));
       // The top label sits above its node; the bottom two hang outward, clear of the arc.
       if (Math.sin(a) < 0) out.push(text(c, px(a), py(a) - NODE - 26, STEPS[i], '--fg', 'text-anchor="middle"'));
@@ -395,22 +391,18 @@
     var y = function (v) { return h - m.bottom - (v / Y_MAX) * (h - m.top - m.bottom); };
     var group = (w - m.left - m.right) / YEARS.length, bar = clamp(group * 0.3, 8, 24), out = [];
 
-    Y_TICKS.forEach(function (t) {
-      out.push('<line x1="' + m.left + '" x2="' + (w - m.right) + '" y1="' + f1(y(t)) + '" y2="' + f1(y(t)) +
-        '" stroke="' + token(t === 0 ? '--fg' : '--muted') + '" stroke-width="' + (t === 0 ? 2 : 0.5) + '"/>');
-      out.push(text(c, m.left - 8, y(t) + 4, '$' + t, '--muted', 'text-anchor="end"'));
-    });
-    out.push('<rect x="' + m.left + '" y="4" width="10" height="10" fill="' + token('--muted') + '"/>');
+    hGrid(c, out, m, w, y, Y_TICKS, function (t) { return '$' + t; });
+    out.push('<rect x="' + m.left + '" y="4" width="10" height="10" fill="' + token('--muted') + '" fill-opacity="0.45"/>');
     out.push(text(c, m.left + 16, 13, 'Taking cash', '--fg'));
-    out.push('<rect x="' + (m.left + 104) + '" y="4" width="10" height="10" fill="' + token('--accent') + '"/>');
+    out.push('<rect x="' + (m.left + 104) + '" y="4" width="10" height="10" fill="' + token('--fg') + '"/>');
     out.push(text(c, m.left + 120, 13, 'Reinvesting', '--fg'));
 
     YEARS.forEach(function (yr, i) {
       var mid = m.left + group * (i + 0.5), inc = dividendIncome(START, YIELD, GROWTH, yr);
       out.push('<rect x="' + f1(mid - bar - 1) + '" y="' + f1(y(inc.cash)) + '" width="' + f1(bar) + '" height="' +
-        f1(y(0) - y(inc.cash)) + '" fill="' + token('--muted') + '"/>');
+        f1(y(0) - y(inc.cash)) + '" fill="' + token('--muted') + '" fill-opacity="0.45"/>');
       out.push('<rect x="' + f1(mid + 1) + '" y="' + f1(y(inc.reinvested)) + '" width="' + f1(bar) + '" height="' +
-        f1(y(0) - y(inc.reinvested)) + '" fill="' + token('--accent') + '"/>');
+        f1(y(0) - y(inc.reinvested)) + '" fill="' + token('--fg') + '"/>');
       out.push(text(c, mid, h - 8, i === 0 ? 'Year 1' : String(yr), '--muted', 'text-anchor="middle"'));
       if (i === YEARS.length - 1) {
         // Year 20 values sit in the right margin, level with the top of each bar.
@@ -449,7 +441,7 @@
       out.push(text(c, w - m.right - 4, top + 18, signed(v) + (Math.abs(v) === 1 ? ' pt: ' : ' pts: ') + action, '--fg',
         'text-anchor="end"' + (outside ? ' font-weight="700"' : '')));
       out.push('<rect x="' + f1(Math.min(sx(0), sx(v))) + '" y="' + (top + 26) + '" width="' + f1(Math.max(2, Math.abs(sx(v) - sx(0)))) +
-        '" height="14" fill="' + token(PIE.tokens[i]) + '"/>');
+        '" height="14" fill="' + token(PIE.tokens[i]) + '" fill-opacity="' + PIE.opacity[i] + '"/>');
     });
     out.push('<line x1="' + f1(x0) + '" x2="' + f1(x0) + '" y1="' + (m.top - 4) + '" y2="' + (h - m.bottom) + '" stroke="' +
       token('--fg') + '" stroke-width="2"/>');
@@ -479,16 +471,15 @@
         out.push(arrow(ox + satW / 2, satY + satH + 2, ox + satW / 2, coreY - 3, token('--accent')));
         out.push(text(c, ox + satW + 12, satY + 18, ['The slice goes', 'back to the core.'], '--fg'));
       } else {
-        out.push('<rect x="' + f1(ox) + '" y="' + satY + '" width="' + f1(satW) + '" height="' + satH + '" fill="' + token('--accent') + '"/>');
-        out.push(text(c, ox + satW / 2, satY + satH / 2 + 4, 'Satellite', '--bg', 'text-anchor="middle" font-weight="700"'));
+        out.push(block(c, ox, satY, satW, satH, BUCKETS[3], ['Satellite']));
         out.push(text(c, ox + satW + 12, satY + 18, ['Active work.', 'Needs the routine.'], '--fg'));
       }
-      out.push('<rect x="' + f1(ox) + '" y="' + coreY + '" width="' + f1(pw) + '" height="' + coreH + '" fill="' + token('--fg') + '"/>');
+      out.push(block(c, ox, coreY, pw, coreH, BUCKETS[2], ['Core', ['Index funds, pies, dividends.', 'Runs without attention.']]));
       if (lapsed) {
         out.push('<rect x="' + f1(ox) + '" y="' + coreY + '" width="' + f1(satW) + '" height="5" fill="' + token('--accent') + '"/>');
       }
-      out.push(text(c, ox + 14, coreY + 26, 'Core', '--bg', 'font-weight="700"'));
-      out.push(text(c, ox + 14, coreY + 46, ['Index funds, pies, dividends.', 'Runs without attention.'], '--bg'));
+      // Strategies 1 to 3 live in the core: hollow chips read on the dark block.
+      [3, 2, 1].forEach(function (n, k) { out.push(chip(c, ox + pw - 18 - k * 24, coreY + 18, n, 9, true)); });
     }
 
     panel(0, 0, false);
@@ -500,7 +491,7 @@
       'goes back to the core. Not to scale.', out);
   }
 
-  // ---- Chapter 2 colors: one per bucket, matching Chapter 6 (core --fg, satellite --accent) ----
+  // ---- Bucket colors, used in Chapters 2 and 6: core --fg, satellite --accent, cushion and reserve --muted ----
 
   var BUCKETS = [
     { name: 'Cushion', lines: ['Emergencies and', 'near-term bills'], token: '--muted', opacity: 1 },
@@ -1222,20 +1213,20 @@
     out.push(text(c, m.left, 14, 'Core value after a market move', '--fg', 'font-weight="700"'));
     // The protected zone: below the floor, the hedge pays.
     out.push('<rect x="' + f1(x(X_MIN)) + '" y="' + f1(y(START * FLOOR)) + '" width="' + f1(x(FLOOR - 1) - x(X_MIN)) + '" height="' +
-      f1(y(Y_MIN) - y(START * FLOOR)) + '" fill="' + token('--accent') + '" fill-opacity="0.08"/>');
+      f1(y(Y_MIN) - y(START * FLOOR)) + '" fill="' + token('--fg') + '" fill-opacity="0.06"/>');
     for (var mv = X_MIN; mv <= X_MAX + 1e-9; mv += 0.01) {
       bare.push(f1(x(mv)) + ',' + f1(y(START * (1 + mv))));
       hedged.push(f1(x(mv)) + ',' + f1(y(START * hedgedValue(mv, FLOOR, PREMIUM))));
     }
-    out.push(polyline(bare, token('--muted'), 2, 'stroke-dasharray="5 4"'));
-    out.push(polyline(hedged, token('--accent'), 3));
+    out.push(polyline(bare, token('--accent'), 2, 'stroke-dasharray="5 4"'));
+    out.push(polyline(hedged, token('--fg'), 3));
 
     var floorV = START * (FLOOR - PREMIUM), topBare = START * (1 + X_MAX), topHedged = START * hedgedValue(X_MAX, FLOOR, PREMIUM);
     var ly = spread([y(topBare) + 4, y(topHedged) + 4], 17);
-    out.push(text(c, x(X_MAX) + 10, ly[0], 'No hedge: $' + topBare, '--fg', 'font-weight="700"'));
-    out.push(text(c, x(X_MAX) + 10, ly[1], 'Hedged: $' + Math.round(topHedged), '--accent', 'font-weight="700"'));
+    out.push(text(c, x(X_MAX) + 10, ly[0], 'No hedge: $' + topBare, '--accent', 'font-weight="700"'));
+    out.push(text(c, x(X_MAX) + 10, ly[1], 'Hedged: $' + Math.round(topHedged), '--fg', 'font-weight="700"'));
     out.push(text(c, x(X_MIN) + 6, y(floorV) - 8, 'Floor: $' + Math.round(floorV), '--fg', 'font-weight="700"'));
-    out.push(text(c, x(X_MIN) + 6, y(START * (1 + X_MIN)) - 8, 'Unhedged: $' + START * (1 + X_MIN), '--muted'));
+    out.push(text(c, x(X_MIN) + 6, y(START * (1 + X_MIN)) + 16, 'Unhedged: $' + START * (1 + X_MIN), '--accent'));
 
     mount(el, w, h, 'Line chart of a $100 core after market moves from minus 50% to plus 30%. Unhedged, it falls with the market. ' +
       'Hedged with a put 10% below that costs $2, it never ends below $' + Math.round(floorV) + ', and in a rising market it trails by the $2 premium.', out);

@@ -96,6 +96,7 @@ if (typeof chart.grow !== 'function' || typeof chart.breakeven !== 'function' ||
     if (chart.mostUnderweight([50, 50], [40, 60]) !== 0) fail('chart.mostUnderweight: 50/50 at 40/60 should buy the first');
     const p = chart.pie;
     if (!p || p.target.reduce((a, b) => a + b, 0) !== 100 || p.now.reduce((a, b) => a + b, 0) !== 100) fail('chart.pie: target and now must each sum to 100');
+    if (p && p.tokens.includes('--accent')) fail('chart.pie: the example holdings are neutral, so none may be red (--accent)');
   }
   // Chapter 1 figures.
   if (typeof chart.roundTrip !== 'function') fail('js/chart.js: must export roundTrip');
